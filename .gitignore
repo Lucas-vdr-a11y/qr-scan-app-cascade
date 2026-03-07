@@ -1,0 +1,18 @@
+node_modules/
+.env
+scans.db
+database.db
+*.log
+.DS_Store
+
+server.key
+server.cert
+
+# Test/debug scripts
+check_products*.js
+dump_product.js
+find_complex.js
+find_optional.js
+search_lunch.js
+add_lucas_user.js
+r26438.json

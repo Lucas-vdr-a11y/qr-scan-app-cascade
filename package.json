@@ -1,0 +1,24 @@
+{
+    "name": "qr-scan-app",
+    "version": "1.0.0",
+    "description": "QR Scan App voor Rederij Cascade",
+    "main": "server.js",
+    "scripts": {
+        "start": "node server.js",
+        "dev": "nodemon server.js"
+    },
+    "dependencies": {
+        "axios": "^1.6.0",
+        "bcryptjs": "^3.0.3",
+        "cors": "^2.8.5",
+        "dotenv": "^16.3.1",
+        "express": "^4.18.2",
+        "express-rate-limit": "^8.2.1",
+        "helmet": "^8.1.0",
+        "jsonwebtoken": "^9.0.3",
+        "sql.js": "^1.10.3"
+    },
+    "devDependencies": {
+        "nodemon": "^3.0.2"
+    }
+}

@@ -1,0 +1,159 @@
+<!DOCTYPE html>
+<html lang="nl">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>Inloggen - QR Scanner</title>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="/styles.css">
+    <style>
+        body {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            min-height: 100vh;
+            background: var(--bg-tertiary);
+            padding: 24px;
+        }
+
+        .login-card {
+            background: var(--bg-primary);
+            padding: 32px;
+            border-radius: var(--radius-card);
+            box-shadow: var(--shadow-float);
+            width: 100%;
+            max-width: 400px;
+            text-align: center;
+        }
+
+        .logo {
+            font-size: 48px;
+            margin-bottom: 24px;
+        }
+
+        h1 {
+            color: var(--text-primary);
+            margin-bottom: 8px;
+        }
+
+        p {
+            color: var(--text-secondary);
+            margin-bottom: 32px;
+        }
+
+        .form-group {
+            margin-bottom: 16px;
+            text-align: left;
+        }
+
+        label {
+            display: block;
+            margin-bottom: 8px;
+            font-weight: 500;
+            color: var(--text-primary);
+        }
+
+        input {
+            width: 100%;
+            padding: 12px;
+            border: 1px solid var(--border-subtle);
+            background: var(--bg-secondary);
+            border-radius: var(--radius-input);
+            font-family: inherit;
+            font-size: 16px;
+        }
+
+        button {
+            width: 100%;
+            padding: 14px;
+            background: var(--brand-primary);
+            color: white;
+            border: none;
+            border-radius: var(--radius-button);
+            font-weight: 600;
+            font-size: 16px;
+            cursor: pointer;
+            transition: opacity 0.2s;
+        }
+
+        button:active {
+            opacity: 0.9;
+        }
+
+        .error {
+            background: var(--status-deny-bg);
+            color: var(--status-deny);
+            padding: 12px;
+            border-radius: var(--radius-button);
+            margin-bottom: 16px;
+            display: none;
+            font-size: 14px;
+        }
+    </style>
+</head>
+
+<body>
+    <div class="login-card">
+        <img src="/logo.png" alt="Rederij Cascade" class="brand-logo login-logo">
+        <p>Log in om te scannen</p>
+
+        <div id="error-msg" class="error"></div>
+
+        <form id="login-form">
+            <div class="form-group">
+                <label>Gebruikersnaam</label>
+                <input type="text" name="username" required placeholder="admin of medewerker" autocapitalize="none">
+            </div>
+
+            <div class="form-group">
+                <label>Wachtwoord</label>
+                <input type="password" name="password" required placeholder="••••••••">
+            </div>
+
+            <button type="submit" id="login-btn">Inloggen</button>
+        </form>
+    </div>
+
+    <script>
+        document.getElementById('login-form').onsubmit = async (e) => {
+            e.preventDefault();
+            const btn = document.getElementById('login-btn');
+            const errorDiv = document.getElementById('error-msg');
+
+            btn.innerHTML = 'Controleren...';
+            btn.disabled = true;
+            errorDiv.style.display = 'none';
+
+            const formData = new FormData(e.target);
+            const data = Object.fromEntries(formData.entries());
+
+            try {
+                const res = await fetch('/api/login', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify(data)
+                });
+
+                const result = await res.json();
+
+                if (res.ok) {
+                    localStorage.setItem('auth_token', result.token);
+                    // Server returns flat object: { token, role, username }
+                    localStorage.setItem('user_role', result.role);
+                    localStorage.setItem('username', result.username);
+                    window.location.href = '/';
+                } else {
+                    throw new Error(result.error || 'Login mislukt');
+                }
+            } catch (err) {
+                errorDiv.textContent = err.message;
+                errorDiv.style.display = 'block';
+                btn.innerHTML = 'Inloggen';
+                btn.disabled = false;
+            }
+        };
+    </script>
+</body>
+
+</html>
