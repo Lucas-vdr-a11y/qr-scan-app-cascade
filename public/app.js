@@ -222,7 +222,9 @@ window.addEventListener('offline', () => {
 function generateDeviceId() {
   let id = localStorage.getItem('deviceId');
   if (!id) {
-    id = 'device_' + Math.random().toString(36).substr(2, 9);
+    const arr = new Uint8Array(16);
+    crypto.getRandomValues(arr);
+    id = 'device_' + Array.from(arr, b => b.toString(16).padStart(2, '0')).join('');
     localStorage.setItem('deviceId', id);
   }
   return id;

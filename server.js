@@ -52,8 +52,21 @@ app.use(helmet({
         }
     }
 }));
-app.use(cors());
-app.use(express.json());
+const allowedOrigins = process.env.ALLOWED_ORIGINS
+    ? process.env.ALLOWED_ORIGINS.split(',')
+    : ['http://localhost:3000', 'https://localhost:3443'];
+
+app.use(cors({
+    origin: function (origin, callback) {
+        // Sta requests zonder origin toe (same-origin, mobile app, etc.)
+        if (!origin || allowedOrigins.includes(origin)) {
+            callback(null, true);
+        } else {
+            callback(new Error('CORS niet toegestaan'));
+        }
+    }
+}));
+app.use(express.json({ limit: '1mb' }));
 app.use(express.static(path.join(__dirname, 'public')));
 
 // Rate limiting op login — max 5 pogingen per 15 minuten per IP
@@ -766,6 +779,16 @@ app.post('/api/users', (req, res) => {
         return res.status(400).json({ error: 'Alle velden invullen' });
     }
 
+    if (typeof username !== 'string' || username.length < 3 || username.length > 50 || !/^[a-zA-Z0-9_]+$/.test(username)) {
+        return res.status(400).json({ error: 'Gebruikersnaam: 3-50 tekens, alleen letters, cijfers en underscores' });
+    }
+    if (typeof password !== 'string' || password.length < 8) {
+        return res.status(400).json({ error: 'Wachtwoord moet minimaal 8 tekens zijn' });
+    }
+    if (!['admin', 'medewerker'].includes(role)) {
+        return res.status(400).json({ error: 'Ongeldige rol' });
+    }
+
     // Check if exists
     if (statements.getUser(username)) {
         return res.status(409).json({ error: 'Gebruikersnaam bestaat al' });
@@ -834,8 +857,7 @@ app.put('/api/users/:id', (req, res) => {
  * Gebruikt door de vaarplanner embed om tafels te kleuren.
  */
 app.get('/api/scan-statuses', (req, res) => {
-    // Allow cross-origin requests from the vaarplanner
-    res.header('Access-Control-Allow-Origin', '*');
+    // CORS wordt afgehandeld door centrale middleware
 
     const { date = getCurrentDate() } = req.query;
 
