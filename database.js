@@ -4,7 +4,7 @@ const path = require('path');
 const bcrypt = require('bcryptjs');
 const crypto = require('crypto');
 
-const DB_PATH = path.join(__dirname, 'scans.db');
+const DB_PATH = process.env.DB_PATH || path.join(__dirname, 'scans.db');
 
 let db = null;
 
