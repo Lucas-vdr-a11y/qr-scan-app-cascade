@@ -79,6 +79,21 @@
                 <span>Gebruikers</span>
             </button>
 
+            <!-- Cascade Tools (desktop only) -->
+            <div class="cascade-tools-divider"></div>
+            <a class="nav-item cascade-tool-link" id="link-vaarplanner" href="#" target="_blank" rel="noopener noreferrer">
+                <svg class="nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                    <rect x="3" y="3" width="7" height="7"/><rect x="14" y="3" width="7" height="7"/><rect x="3" y="14" width="7" height="7"/><rect x="14" y="14" width="7" height="7"/>
+                </svg>
+                <span>VaarPlanner</span>
+            </a>
+            <a class="nav-item cascade-tool-link" id="link-werkenbij" href="#" target="_blank" rel="noopener noreferrer">
+                <svg class="nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                    <rect x="2" y="7" width="20" height="14" rx="2" ry="2"/><path d="M16 21V5a2 2 0 0 0-2-2h-4a2 2 0 0 0-2 2v16"/>
+                </svg>
+                <span>Werkenbij</span>
+            </a>
+
             <button class="nav-item" id="logout-btn">
                 <svg class="nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
                     <path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"></path>
@@ -346,6 +361,16 @@
 
     <!-- App Script -->
     <script src="/app.js?v=11"></script>
+
+    <!-- Cascade cross-navigation -->
+    <script>
+        fetch('/api/cascade-apps').then(r => r.json()).then(apps => {
+            const vp = document.getElementById('link-vaarplanner');
+            const wb = document.getElementById('link-werkenbij');
+            if (vp) vp.href = apps.vaarplanner;
+            if (wb) wb.href = apps.werkenbij;
+        }).catch(() => {});
+    </script>
 
     <!-- Service Worker Registration -->
     <script>

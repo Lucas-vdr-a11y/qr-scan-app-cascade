@@ -235,6 +235,12 @@ input {
     display: none;
 }
 
+/* Hide cascade tools on mobile */
+.cascade-tools-divider,
+.cascade-tool-link {
+    display: none;
+}
+
 .qr-nav-icon {
     object-fit: contain;
 }
@@ -967,6 +973,23 @@ input {
         max-height: 40px;
         object-fit: contain;
         margin: 0 auto 20px auto;
+    }
+
+    /* -- Cascade Tools divider & links -- */
+    .cascade-tools-divider {
+        width: calc(100% - 32px);
+        height: 1px;
+        background: var(--border-subtle);
+        margin: 12px auto 8px;
+    }
+
+    .cascade-tool-link {
+        font-size: 13px;
+        opacity: 0.6;
+    }
+
+    .cascade-tool-link:hover {
+        opacity: 1;
     }
 
     /* -- Hide scanner header logo on desktop -- */
