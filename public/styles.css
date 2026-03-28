@@ -2,9 +2,9 @@
     /* ==================== COLOR TOKENS ==================== */
 
     /* Brand Palette - Rederij Cascade */
-    --brand-primary: #003366;
+    --brand-primary: #092D61;
     /* Marineblauw */
-    --brand-accent: #00AEEF;
+    --brand-accent: #B49253;
     /* Helderblauw */
 
     /* Status Palette - Operationeel (Dominant) */
@@ -14,7 +14,7 @@
     /* Amber-600 */
     --status-deny: #dc2626;
     /* Red-600 */
-    --status-info: #00AEEF;
+    --status-info: #49648A;
     /* Helderblauw */
 
     /* Status Backgrounds (Simulated typically 10-15% opacity) */
@@ -24,26 +24,26 @@
     /* Amber-50 */
     --status-deny-bg: #fef2f2;
     /* Red-50 */
-    --status-info-bg: #e6f7ff;
+    --status-info-bg: #DAE0E8;
     /* Light Accent */
 
     /* Neutral Palette (Light Mode Default) */
-    --bg-primary: #ffffff;
+    --bg-primary: #F9F7F5;
     --bg-secondary: #ffffff;
-    --bg-tertiary: #e6e6e6;
+    --bg-tertiary: #EDECEA;
     /* Neutral-100 */
 
-    --text-primary: #003366;
+    --text-primary: #092D61;
     /* Neutral-900 / Marineblauw voor tekst */
-    --text-secondary: #5a738e;
+    --text-secondary: #49648A;
     /* Blauw/Grijs */
     --text-muted: #a3a3a3;
     /* Neutral-400 */
     --text-inverse: #ffffff;
 
-    --border-subtle: #e6e6e6;
+    --border-subtle: #DAE0E8;
     /* Neutral-200 */
-    --border-focus: #00AEEF;
+    --border-focus: #B49253;
     /* Blue-300 */
 
     /* Shadows */
@@ -55,7 +55,7 @@
     /* Dimensions */
     --radius-card: 16px;
     /* rounded-2xl */
-    --radius-button: 12px;
+    --radius-button: 2em;
     /* rounded-xl */
     --radius-pill: 999px;
     --radius-input: 12px;
@@ -67,7 +67,7 @@
     --spacing-xl: 32px;
 
     /* Typography */
-    --font-family: 'Inter', system-ui, -apple-system, sans-serif;
+    --font-family: 'Poppins', system-ui, -apple-system, sans-serif;
 }
 
 
@@ -125,6 +125,10 @@ h3 {
     color: var(--text-primary);
     font-weight: 700;
     letter-spacing: -0.02em;
+}
+
+h1, h2 {
+    font-family: 'Baloo Thambi 2', system-ui, sans-serif;
 }
 
 button {

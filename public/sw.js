@@ -1,4 +1,4 @@
-const CACHE_NAME = 'qr-scan-v3';
+const CACHE_NAME = 'qr-scan-v4';
 const ASSETS_TO_CACHE = [
     '/',
     '/index.html',
@@ -7,7 +7,7 @@ const ASSETS_TO_CACHE = [
     '/app.js',
     '/manifest.json',
     '/img/rederij-cascade-logo.png',
-    'https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap',
+    'https://fonts.googleapis.com/css2?family=Poppins:wght@400;500;600&family=Baloo+Thambi+2:wght@400;700&display=swap',
     'https://unpkg.com/html5-qrcode@2.3.8/html5-qrcode.min.js'
 ];
 

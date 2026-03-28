@@ -50,7 +50,7 @@ async function sendInviteEmail(email, username, token) {
                 <p>Je bent uitgenodigd om de QR Scanner app van Rederij Cascade te gebruiken.</p>
                 <p>Klik op de knop hieronder om je wachtwoord in te stellen:</p>
                 <p style="text-align: center; margin: 32px 0;">
-                    <a href="${link}" style="background: #2563eb; color: white; padding: 12px 32px; border-radius: 8px; text-decoration: none; font-weight: 600;">
+                    <a href="${link}" style="background: #B49253; color: white; padding: 12px 32px; border-radius: 8px; text-decoration: none; font-weight: 600;">
                         Wachtwoord instellen
                     </a>
                 </p>
@@ -76,7 +76,7 @@ async function sendResetEmail(email, username, token) {
                 <p>Er is een wachtwoord reset aangevraagd voor je account.</p>
                 <p>Klik op de knop hieronder om een nieuw wachtwoord in te stellen:</p>
                 <p style="text-align: center; margin: 32px 0;">
-                    <a href="${link}" style="background: #2563eb; color: white; padding: 12px 32px; border-radius: 8px; text-decoration: none; font-weight: 600;">
+                    <a href="${link}" style="background: #B49253; color: white; padding: 12px 32px; border-radius: 8px; text-decoration: none; font-weight: 600;">
                         Nieuw wachtwoord instellen
                     </a>
                 </p>
