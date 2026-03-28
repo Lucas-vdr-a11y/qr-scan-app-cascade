@@ -301,7 +301,7 @@ app.post('/api/scan', async (req, res) => {
     if (tour_leg !== null && tour_leg !== 'heen' && tour_leg !== 'terug') {
         return res.status(400).json({
             status: 'error',
-            message: 'Ongeldige tour_leg waarde'
+            message: 'Ongeldige richting — kies "heen" of "terug"'
         });
     }
 
@@ -719,7 +719,7 @@ app.get('/api/history', (req, res) => {
  */
 app.delete('/api/history/:id', (req, res) => {
     if (req.user.role !== 'admin') {
-        return res.status(403).json({ error: 'Geen rechten' });
+        return res.status(403).json({ error: 'Alleen beheerders kunnen scans ongedaan maken' });
     }
 
     try {
@@ -892,13 +892,13 @@ app.get('/api/status/:reservation_id', (req, res) => {
 // ------------------------------------------------------------------
 
 app.get('/api/users', (req, res) => {
-    if (req.user.role !== 'admin') return res.sendStatus(403);
+    if (req.user.role !== 'admin') return res.status(403).json({ error: 'Alleen beheerders kunnen gebruikers bekijken' });
     const users = statements.getAllUsers();
     res.json(users);
 });
 
 app.post('/api/users', async (req, res) => {
-    if (req.user.role !== 'admin') return res.sendStatus(403);
+    if (req.user.role !== 'admin') return res.status(403).json({ error: 'Alleen beheerders kunnen gebruikers aanmaken' });
 
     const { username, email, role } = req.body;
 
@@ -953,7 +953,7 @@ app.post('/api/users', async (req, res) => {
 
 // Uitnodiging opnieuw versturen
 app.post('/api/users/:id/resend-invite', async (req, res) => {
-    if (req.user.role !== 'admin') return res.sendStatus(403);
+    if (req.user.role !== 'admin') return res.status(403).json({ error: 'Alleen beheerders kunnen uitnodigingen versturen' });
 
     const user = statements.getUserById(parseInt(req.params.id));
     if (!user) return res.status(404).json({ error: 'Gebruiker niet gevonden' });
@@ -975,7 +975,7 @@ app.post('/api/users/:id/resend-invite', async (req, res) => {
 });
 
 app.delete('/api/users/:id', (req, res) => {
-    if (req.user.role !== 'admin') return res.sendStatus(403);
+    if (req.user.role !== 'admin') return res.status(403).json({ error: 'Alleen beheerders kunnen gebruikers verwijderen' });
 
     const id = req.params.id;
 
@@ -989,7 +989,7 @@ app.delete('/api/users/:id', (req, res) => {
 });
 
 app.put('/api/users/:id', (req, res) => {
-    if (req.user.role !== 'admin') return res.sendStatus(403);
+    if (req.user.role !== 'admin') return res.status(403).json({ error: 'Alleen beheerders kunnen gebruikers bewerken' });
 
     const id = parseInt(req.params.id);
     const { role, password, email } = req.body;
@@ -1103,7 +1103,7 @@ app.get('/api/departures', async (req, res) => {
         console.error('Error fetching departures:', error);
         res.status(500).json({
             status: 'error',
-            message: 'Failed to fetch departures'
+            message: 'Kan vertrekken niet ophalen'
         });
     }
 });
@@ -1126,7 +1126,7 @@ app.post('/api/floorplan-token', async (req, res) => {
 
     const { departureId, date } = req.body;
     if (!departureId || !date) {
-        return res.status(400).json({ error: 'departureId en date zijn verplicht' });
+        return res.status(400).json({ error: 'Vertrek-ID en datum zijn verplicht' });
     }
 
     try {
