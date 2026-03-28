@@ -298,13 +298,14 @@
             <form id="add-user-form">
                 <div class="form-group" style="margin-bottom: 12px;">
                     <label style="display: block; margin-bottom: 6px; font-weight: 500;">Gebruikersnaam</label>
-                    <input type="text" name="username" required placeholder="bijv. medewerker@rederijcascade.nl"
-                        style="width: 100%; padding: 10px; border: 1px solid var(--border-subtle); border-radius: var(--radius-input); font-size: 15px;">
+                    <input type="text" name="username" required placeholder="bijv. jan_de_vries"
+                        style="width: 100%; padding: 10px; border: 1px solid var(--border-subtle); border-radius: var(--radius-input); font-size: 15px;"
+                        autocapitalize="none">
                 </div>
 
                 <div class="form-group" style="margin-bottom: 12px;">
-                    <label style="display: block; margin-bottom: 6px; font-weight: 500;">Wachtwoord</label>
-                    <input type="password" name="password" required placeholder="Min. 6 tekens"
+                    <label style="display: block; margin-bottom: 6px; font-weight: 500;">E-mailadres</label>
+                    <input type="email" name="email" required placeholder="medewerker@voorbeeld.nl"
                         style="width: 100%; padding: 10px; border: 1px solid var(--border-subtle); border-radius: var(--radius-input); font-size: 15px;">
                 </div>
 
@@ -312,12 +313,12 @@
                     <label style="display: block; margin-bottom: 6px; font-weight: 500;">Rol</label>
                     <select name="role" required
                         style="width: 100%; padding: 10px; border: 1px solid var(--border-subtle); border-radius: var(--radius-input); font-size: 15px; background: var(--bg-primary);">
-                        <option value="user">Medewerker</option>
+                        <option value="medewerker">Medewerker</option>
                         <option value="admin">Beheerder</option>
                     </select>
                 </div>
 
-                <button type="submit" class="btn btn-primary">Opslaan</button>
+                <button type="submit" class="btn btn-primary">Uitnodigen</button>
             </form>
         </div>
     </div>

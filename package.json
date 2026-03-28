@@ -16,6 +16,7 @@
         "express-rate-limit": "^8.2.1",
         "helmet": "^8.1.0",
         "jsonwebtoken": "^9.0.3",
+        "resend": "^6.9.4",
         "sql.js": "^1.10.3"
     },
     "devDependencies": {

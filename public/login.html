@@ -113,9 +113,65 @@
 
             <button type="submit" id="login-btn">Inloggen</button>
         </form>
+
+        <a href="#" id="forgot-link" style="display: block; margin-top: 16px; color: var(--text-secondary); font-size: 14px; text-decoration: none;">
+            Wachtwoord vergeten?
+        </a>
+
+        <div id="forgot-form" style="display: none; margin-top: 16px;">
+            <div class="form-group">
+                <label>E-mailadres</label>
+                <input type="email" id="forgot-email" required placeholder="je@email.nl"
+                    style="width: 100%; padding: 12px; border: 1px solid var(--border-subtle); background: var(--bg-secondary); border-radius: var(--radius-input); font-family: inherit; font-size: 16px;">
+            </div>
+            <button id="forgot-btn" style="width: 100%; padding: 14px; background: var(--brand-primary); color: white; border: none; border-radius: var(--radius-button); font-weight: 600; font-size: 16px; cursor: pointer;">
+                Verstuur reset link
+            </button>
+            <div id="forgot-msg" style="display: none; margin-top: 12px; padding: 12px; border-radius: var(--radius-button); font-size: 14px;"></div>
+        </div>
     </div>
 
     <script>
+        // Wachtwoord vergeten toggle
+        document.getElementById('forgot-link').onclick = (e) => {
+            e.preventDefault();
+            document.getElementById('forgot-form').style.display = 'block';
+            document.getElementById('forgot-link').style.display = 'none';
+        };
+
+        document.getElementById('forgot-btn').onclick = async () => {
+            const btn = document.getElementById('forgot-btn');
+            const msgDiv = document.getElementById('forgot-msg');
+            const email = document.getElementById('forgot-email').value;
+
+            if (!email) return;
+
+            btn.disabled = true;
+            btn.textContent = 'Versturen...';
+            msgDiv.style.display = 'none';
+
+            try {
+                const res = await fetch('/api/forgot-password', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ email })
+                });
+                const result = await res.json();
+                msgDiv.textContent = result.message || 'Check je inbox.';
+                msgDiv.style.background = 'var(--status-allow-bg, #d1fae5)';
+                msgDiv.style.color = 'var(--status-allow, #065f46)';
+                msgDiv.style.display = 'block';
+            } catch (err) {
+                msgDiv.textContent = 'Er ging iets mis. Probeer het opnieuw.';
+                msgDiv.style.background = 'var(--status-deny-bg)';
+                msgDiv.style.color = 'var(--status-deny)';
+                msgDiv.style.display = 'block';
+            }
+
+            btn.disabled = false;
+            btn.textContent = 'Verstuur reset link';
+        };
+
         document.getElementById('login-form').onsubmit = async (e) => {
             e.preventDefault();
             const btn = document.getElementById('login-btn');

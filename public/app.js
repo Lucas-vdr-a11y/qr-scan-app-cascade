@@ -1520,12 +1520,18 @@ async function loadUsers() {
       <div class="reservation-card" style="display: flex; justify-content: space-between; align-items: center; padding: 16px; border-radius: var(--radius-card); margin-bottom: 8px;">
         <div>
           <div style="font-weight: 700; font-size: 16px;">${u.username}</div>
+          ${u.email ? `<div style="font-size: 13px; color: var(--text-secondary); margin-top: 2px;">${u.email}</div>` : ''}
           <div class="status-badge ${u.role === 'admin' ? 'status-info' : 'status-success'}" style="margin-top: 4px;">
             ${u.role === 'admin' ? 'Beheerder' : 'Medewerker'}
           </div>
         </div>
         <div style="display: flex; gap: 8px;">
-          <button class="btn btn-secondary" data-action="edit-user" data-id="${u.id}" data-username="${u.username}" data-role="${u.role}" style="padding: 8px 12px; width: auto;">
+          ${u.email ? `
+            <button class="btn btn-secondary" data-action="resend-invite" data-id="${u.id}" data-email="${u.email}" style="padding: 8px 12px; width: auto;" title="Uitnodiging opnieuw versturen">
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M4 4h16c1.1 0 2 .9 2 2v12c0 1.1-.9 2-2 2H4c-1.1 0-2-.9-2-2V6c0-1.1.9-2 2-2z"/><polyline points="22,6 12,13 2,6"/></svg>
+            </button>
+          ` : ''}
+          <button class="btn btn-secondary" data-action="edit-user" data-id="${u.id}" data-username="${u.username}" data-role="${u.role}" data-email="${u.email || ''}" style="padding: 8px 12px; width: auto;">
             <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/></svg>
           </button>
           ${u.username !== 'admin' ? `
@@ -1545,20 +1551,22 @@ async function loadUsers() {
 
 let editingUserId = null;
 
-function editUser(id, username, role) {
+function editUser(id, username, role, email) {
   editingUserId = id;
   const modal = document.getElementById('add-user-modal');
   const modalTitle = modal.querySelector('.modal-header h2');
   const usernameInput = modal.querySelector('input[name="username"]');
-  const passwordInput = modal.querySelector('input[name="password"]');
+  const emailInput = modal.querySelector('input[name="email"]');
   const roleSelect = modal.querySelector('select[name="role"]');
+  const submitBtn = modal.querySelector('button[type="submit"]');
 
   modalTitle.textContent = 'Gebruiker Bewerken';
   usernameInput.value = username;
   usernameInput.disabled = true;
-  passwordInput.required = false;
-  passwordInput.placeholder = 'Laat leeg om niet te wijzigen';
+  emailInput.value = email || '';
+  emailInput.required = false;
   roleSelect.value = role;
+  submitBtn.textContent = 'Opslaan';
 
   modal.classList.add('active');
 }
@@ -1568,12 +1576,13 @@ function resetUserModal() {
   const modal = document.getElementById('add-user-modal');
   const modalTitle = modal.querySelector('.modal-header h2');
   const usernameInput = modal.querySelector('input[name="username"]');
-  const passwordInput = modal.querySelector('input[name="password"]');
+  const emailInput = modal.querySelector('input[name="email"]');
+  const submitBtn = modal.querySelector('button[type="submit"]');
 
   modalTitle.textContent = 'Gebruiker Toevoegen';
   usernameInput.disabled = false;
-  passwordInput.required = true;
-  passwordInput.placeholder = 'Min. 6 tekens';
+  emailInput.required = true;
+  submitBtn.textContent = 'Uitnodigen';
 }
 
 async function deleteUser(id) {
@@ -1584,6 +1593,22 @@ async function deleteUser(id) {
     loadUsers();
   } catch (e) {
     alert('Fout bij verwijderen: ' + e.message);
+  }
+}
+
+async function resendInvite(id, email) {
+  if (!confirm(`Uitnodiging opnieuw versturen naar ${email}?`)) return;
+
+  try {
+    const res = await authFetch(`${API_BASE}/api/users/${id}/resend-invite`, { method: 'POST' });
+    const result = await res.json();
+    if (res.ok) {
+      alert(result.message || 'Uitnodiging verstuurd!');
+    } else {
+      throw new Error(result.error || 'Fout bij versturen');
+    }
+  } catch (e) {
+    alert('Fout: ' + e.message);
   }
 }
 
@@ -1599,9 +1624,11 @@ if (usersListEl) {
     const id = parseInt(btn.dataset.id);
 
     if (action === 'edit-user') {
-      editUser(id, btn.dataset.username, btn.dataset.role);
+      editUser(id, btn.dataset.username, btn.dataset.role, btn.dataset.email);
     } else if (action === 'delete-user') {
       deleteUser(id);
+    } else if (action === 'resend-invite') {
+      resendInvite(id, btn.dataset.email);
     }
   });
 }
@@ -1643,29 +1670,29 @@ if (addUserForm) addUserForm.onsubmit = async (e) => {
     let res;
     if (editingUserId) {
       // Update existing user
-      const updateData = { role: data.role };
-      if (data.password) updateData.password = data.password;
+      const updateData = { role: data.role, email: data.email };
       res = await authFetch(`${API_BASE}/api/users/${editingUserId}`, {
         method: 'PUT',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(updateData)
       });
     } else {
-      // Create new user
+      // Create new user — invite via email
       res = await authFetch(`${API_BASE}/api/users`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(data)
+        body: JSON.stringify({ username: data.username, email: data.email, role: data.role })
       });
     }
 
+    const result = await res.json();
     if (res.ok) {
       addUserModal.classList.remove('active');
       e.target.reset();
       resetUserModal();
       loadUsers();
+      if (result.message) alert(result.message);
     } else {
-      const result = await res.json();
       throw new Error(result.error || 'Fout bij opslaan');
     }
   } catch (e) {

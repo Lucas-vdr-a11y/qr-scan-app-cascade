@@ -11,6 +11,8 @@ const { initDatabase, statements } = require('./database');
 const semApi = require('./sem-api');
 const bcrypt = require('bcryptjs');
 const jwt = require('jsonwebtoken');
+const crypto = require('crypto');
+const { Resend } = require('resend');
 
 // JWT_SECRET MOET in .env staan — geen onveilige fallback meer
 if (!process.env.JWT_SECRET) {
@@ -18,6 +20,72 @@ if (!process.env.JWT_SECRET) {
     process.exit(1);
 }
 const JWT_SECRET = process.env.JWT_SECRET;
+const APP_URL = process.env.APP_URL || 'http://localhost:3000';
+
+// Resend email client (lazy — werkt ook als RESEND_API_KEY niet is ingesteld)
+let resend = null;
+function getResend() {
+    if (!resend && process.env.RESEND_API_KEY) {
+        resend = new Resend(process.env.RESEND_API_KEY);
+    }
+    return resend;
+}
+
+function generateResetToken() {
+    return crypto.randomBytes(32).toString('hex');
+}
+
+async function sendInviteEmail(email, username, token) {
+    const r = getResend();
+    if (!r) throw new Error('RESEND_API_KEY niet geconfigureerd');
+
+    const link = `${APP_URL}/set-password.html?token=${token}`;
+    await r.emails.send({
+        from: process.env.EMAIL_FROM || 'QR Scanner <noreply@keicode.nl>',
+        to: email,
+        subject: 'Welkom bij QR Scanner — Stel je wachtwoord in',
+        html: `
+            <div style="font-family: sans-serif; max-width: 480px; margin: 0 auto;">
+                <h2>Hoi ${username},</h2>
+                <p>Je bent uitgenodigd om de QR Scanner app van Rederij Cascade te gebruiken.</p>
+                <p>Klik op de knop hieronder om je wachtwoord in te stellen:</p>
+                <p style="text-align: center; margin: 32px 0;">
+                    <a href="${link}" style="background: #2563eb; color: white; padding: 12px 32px; border-radius: 8px; text-decoration: none; font-weight: 600;">
+                        Wachtwoord instellen
+                    </a>
+                </p>
+                <p style="color: #666; font-size: 14px;">Deze link is 48 uur geldig.</p>
+                <p>Groet,<br>Rederij Cascade</p>
+            </div>
+        `
+    });
+}
+
+async function sendResetEmail(email, username, token) {
+    const r = getResend();
+    if (!r) throw new Error('RESEND_API_KEY niet geconfigureerd');
+
+    const link = `${APP_URL}/set-password.html?token=${token}`;
+    await r.emails.send({
+        from: process.env.EMAIL_FROM || 'QR Scanner <noreply@keicode.nl>',
+        to: email,
+        subject: 'Wachtwoord resetten — QR Scanner',
+        html: `
+            <div style="font-family: sans-serif; max-width: 480px; margin: 0 auto;">
+                <h2>Hoi ${username},</h2>
+                <p>Er is een wachtwoord reset aangevraagd voor je account.</p>
+                <p>Klik op de knop hieronder om een nieuw wachtwoord in te stellen:</p>
+                <p style="text-align: center; margin: 32px 0;">
+                    <a href="${link}" style="background: #2563eb; color: white; padding: 12px 32px; border-radius: 8px; text-decoration: none; font-weight: 600;">
+                        Nieuw wachtwoord instellen
+                    </a>
+                </p>
+                <p style="color: #666; font-size: 14px;">Deze link is 1 uur geldig. Heb je dit niet aangevraagd? Dan kun je deze e-mail negeren.</p>
+                <p>Groet,<br>Rederij Cascade</p>
+            </div>
+        `
+    });
+}
 
 const app = express();
 const PORT = process.env.PORT || 3000;
@@ -114,9 +182,68 @@ app.post('/api/login', loginLimiter, (req, res) => {
     res.json({ token, role: user.role, username: user.username });
 });
 
+// ------------------------------------------------------------------
+// PUBLIEKE ENDPOINTS (geen auth nodig)
+// ------------------------------------------------------------------
+
+// Wachtwoord instellen via token (uit invite of reset email)
+app.post('/api/set-password', loginLimiter, (req, res) => {
+    const { token, password } = req.body;
+
+    if (!token || !password) {
+        return res.status(400).json({ error: 'Token en wachtwoord zijn verplicht' });
+    }
+    if (typeof password !== 'string' || password.length < 8) {
+        return res.status(400).json({ error: 'Wachtwoord moet minimaal 8 tekens zijn' });
+    }
+
+    const resetToken = statements.getPasswordResetToken(token);
+    if (!resetToken) {
+        return res.status(400).json({ error: 'Ongeldige of verlopen link. Vraag een nieuwe aan bij de beheerder.' });
+    }
+
+    const hash = bcrypt.hashSync(password, 10);
+    statements.updateUserPassword(resetToken.user_id, hash);
+    statements.markTokenUsed(token);
+    statements.invalidateTokensForUser(resetToken.user_id);
+
+    res.json({ status: 'ok', message: 'Wachtwoord ingesteld! Je kunt nu inloggen.' });
+});
+
+// Wachtwoord vergeten — stuurt reset link naar email
+app.post('/api/forgot-password', loginLimiter, (req, res) => {
+    const { email } = req.body;
+
+    // Altijd hetzelfde antwoord (voorkom email enumeration)
+    const genericResponse = { status: 'ok', message: 'Als dit e-mailadres bekend is, ontvang je een link.' };
+
+    if (!email) {
+        return res.status(400).json({ error: 'Vul je e-mailadres in' });
+    }
+
+    const user = statements.getUserByEmail(email);
+    if (!user) {
+        return res.json(genericResponse);
+    }
+
+    const token = generateResetToken();
+    const expiresAt = new Date(Date.now() + 60 * 60 * 1000).toISOString(); // 1 uur
+
+    statements.invalidateTokensForUser(user.id);
+    statements.createPasswordResetToken(user.id, token, expiresAt);
+
+    sendResetEmail(email, user.username, token).catch(err => {
+        console.error('Fout bij versturen reset email:', err.message);
+    });
+
+    res.json(genericResponse);
+});
+
 // Beveilig alle overige /api routes
 app.use('/api', (req, res, next) => {
     if (req.path === '/login') return next(); // Should be handled above
+    if (req.path === '/set-password') return next();
+    if (req.path === '/forgot-password') return next();
     if (req.path === '/scan-statuses') return next(); // Public endpoint for floorplan embed
 
     const authHeader = req.headers['authorization'];
@@ -770,34 +897,81 @@ app.get('/api/users', (req, res) => {
     res.json(users);
 });
 
-app.post('/api/users', (req, res) => {
+app.post('/api/users', async (req, res) => {
     if (req.user.role !== 'admin') return res.sendStatus(403);
 
-    const { username, password, role } = req.body;
+    const { username, email, role } = req.body;
 
-    if (!username || !password || !role) {
-        return res.status(400).json({ error: 'Alle velden invullen' });
+    if (!username || !email || !role) {
+        return res.status(400).json({ error: 'Gebruikersnaam, e-mailadres en rol zijn verplicht' });
     }
 
     if (typeof username !== 'string' || username.length < 3 || username.length > 50 || !/^[a-zA-Z0-9_]+$/.test(username)) {
         return res.status(400).json({ error: 'Gebruikersnaam: 3-50 tekens, alleen letters, cijfers en underscores' });
     }
-    if (typeof password !== 'string' || password.length < 8) {
-        return res.status(400).json({ error: 'Wachtwoord moet minimaal 8 tekens zijn' });
+    if (typeof email !== 'string' || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) {
+        return res.status(400).json({ error: 'Ongeldig e-mailadres' });
     }
     if (!['admin', 'medewerker'].includes(role)) {
         return res.status(400).json({ error: 'Ongeldige rol' });
     }
 
-    // Check if exists
+    // Check if username exists
     if (statements.getUser(username)) {
         return res.status(409).json({ error: 'Gebruikersnaam bestaat al' });
     }
 
-    const hash = bcrypt.hashSync(password, 10);
-    statements.createUser(username, hash, role);
+    // Placeholder wachtwoord — gebruiker kan niet inloggen tot ze via de link een wachtwoord instellen
+    const placeholderHash = bcrypt.hashSync(crypto.randomBytes(64).toString('hex'), 10);
+    statements.createUser(username, placeholderHash, role, email);
 
-    res.json({ status: 'ok' });
+    // Haal de aangemaakte user op voor het ID
+    const newUser = statements.getUser(username);
+
+    // Token aanmaken (48 uur geldig)
+    const token = generateResetToken();
+    const expiresAt = new Date(Date.now() + 48 * 60 * 60 * 1000).toISOString();
+    statements.createPasswordResetToken(newUser.id, token, expiresAt);
+
+    // Email versturen
+    let emailSent = false;
+    try {
+        await sendInviteEmail(email, username, token);
+        emailSent = true;
+    } catch (err) {
+        console.error('Fout bij versturen uitnodiging:', err.message);
+    }
+
+    res.json({
+        status: 'ok',
+        emailSent,
+        message: emailSent
+            ? `Uitnodiging verstuurd naar ${email}`
+            : `Account aangemaakt maar e-mail kon niet worden verstuurd. Gebruik "Opnieuw uitnodigen".`
+    });
+});
+
+// Uitnodiging opnieuw versturen
+app.post('/api/users/:id/resend-invite', async (req, res) => {
+    if (req.user.role !== 'admin') return res.sendStatus(403);
+
+    const user = statements.getUserById(parseInt(req.params.id));
+    if (!user) return res.status(404).json({ error: 'Gebruiker niet gevonden' });
+    if (!user.email) return res.status(400).json({ error: 'Gebruiker heeft geen e-mailadres' });
+
+    // Oude tokens ongeldig maken, nieuwe aanmaken
+    statements.invalidateTokensForUser(user.id);
+    const token = generateResetToken();
+    const expiresAt = new Date(Date.now() + 48 * 60 * 60 * 1000).toISOString();
+    statements.createPasswordResetToken(user.id, token, expiresAt);
+
+    try {
+        await sendInviteEmail(user.email, user.username, token);
+        res.json({ status: 'ok', message: `Uitnodiging verstuurd naar ${user.email}` });
+    } catch (err) {
+        console.error('Fout bij opnieuw versturen:', err.message);
+        res.status(500).json({ error: 'E-mail kon niet worden verstuurd' });
+    }
 });
 
 app.delete('/api/users/:id', (req, res) => {
@@ -818,7 +992,7 @@ app.put('/api/users/:id', (req, res) => {
     if (req.user.role !== 'admin') return res.sendStatus(403);
 
     const id = parseInt(req.params.id);
-    const { role, password } = req.body;
+    const { role, password, email } = req.body;
 
     // Check user exists
     const user = statements.getUserById(id);
@@ -832,8 +1006,13 @@ app.put('/api/users/:id', (req, res) => {
     }
 
     // Update role if provided
-    if (role && ['admin', 'user'].includes(role)) {
+    if (role && ['admin', 'medewerker'].includes(role)) {
         statements.updateUserRole(id, role);
+    }
+
+    // Update email if provided
+    if (email !== undefined) {
+        statements.updateUserEmail(id, email || null);
     }
 
     // Update password if provided

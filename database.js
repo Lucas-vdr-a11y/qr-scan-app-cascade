@@ -49,10 +49,10 @@ async function initDatabase() {
       forced INTEGER DEFAULT 0
     );
 
-    CREATE INDEX IF NOT EXISTS idx_scan_history_timestamp 
+    CREATE INDEX IF NOT EXISTS idx_scan_history_timestamp
       ON scan_history(timestamp DESC);
-    
-    CREATE INDEX IF NOT EXISTS idx_scan_history_reservation 
+
+    CREATE INDEX IF NOT EXISTS idx_scan_history_reservation
       ON scan_history(reservation_id);
 
     CREATE TABLE IF NOT EXISTS users (
@@ -60,6 +60,16 @@ async function initDatabase() {
       username TEXT UNIQUE NOT NULL,
       password_hash TEXT NOT NULL,
       role TEXT NOT NULL
+    );
+
+    CREATE TABLE IF NOT EXISTS password_reset_tokens (
+      id INTEGER PRIMARY KEY AUTOINCREMENT,
+      user_id INTEGER NOT NULL,
+      token TEXT UNIQUE NOT NULL,
+      expires_at TEXT NOT NULL,
+      used INTEGER DEFAULT 0,
+      created_at TEXT NOT NULL,
+      FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE
     );
   `);
 
@@ -103,6 +113,13 @@ async function initDatabase() {
         db.run("ALTER TABLE scan_status ADD COLUMN tour_leg TEXT");
     } catch (e) {
         // Column already exists or table doesn't exist yet
+    }
+
+    // Migration: add email to users if missing
+    try {
+        db.run("ALTER TABLE users ADD COLUMN email TEXT");
+    } catch (e) {
+        // Column already exists
     }
 
     console.log('✓ Database initialized');
@@ -233,13 +250,13 @@ const statements = {
     },
 
     getAllUsers: () => {
-        return query('SELECT id, username, role FROM users ORDER BY username ASC');
+        return query('SELECT id, username, role, email FROM users ORDER BY username ASC');
     },
 
-    createUser: (username, passwordHash, role) => {
+    createUser: (username, passwordHash, role, email) => {
         run(
-            'INSERT INTO users (username, password_hash, role) VALUES (?, ?, ?)',
-            [username, passwordHash, role]
+            'INSERT INTO users (username, password_hash, role, email) VALUES (?, ?, ?, ?)',
+            [username, passwordHash, role, email || null]
         );
     },
 
@@ -255,9 +272,41 @@ const statements = {
         run('UPDATE users SET password_hash = ? WHERE id = ?', [passwordHash, id]);
     },
 
+    updateUserEmail: (id, email) => {
+        run('UPDATE users SET email = ? WHERE id = ?', [email, id]);
+    },
+
     getUserById: (id) => {
-        const results = query('SELECT id, username, role FROM users WHERE id = ?', [id]);
+        const results = query('SELECT id, username, role, email FROM users WHERE id = ?', [id]);
         return results[0] || null;
+    },
+
+    getUserByEmail: (email) => {
+        const results = query('SELECT id, username, role, email FROM users WHERE email = ?', [email]);
+        return results[0] || null;
+    },
+
+    createPasswordResetToken: (userId, token, expiresAt) => {
+        run(
+            'INSERT INTO password_reset_tokens (user_id, token, expires_at, created_at) VALUES (?, ?, ?, ?)',
+            [userId, token, expiresAt, new Date().toISOString()]
+        );
+    },
+
+    getPasswordResetToken: (token) => {
+        const results = query(
+            "SELECT * FROM password_reset_tokens WHERE token = ? AND used = 0 AND expires_at > datetime('now')",
+            [token]
+        );
+        return results[0] || null;
+    },
+
+    markTokenUsed: (token) => {
+        run('UPDATE password_reset_tokens SET used = 1 WHERE token = ?', [token]);
+    },
+
+    invalidateTokensForUser: (userId) => {
+        run('UPDATE password_reset_tokens SET used = 1 WHERE user_id = ?', [userId]);
     }
 };
 
