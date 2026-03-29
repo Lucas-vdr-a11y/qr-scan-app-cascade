@@ -1435,7 +1435,7 @@ async function loadReservations() {
       const paymentBadge = (!isPaid && openAmount > 0.01) ? `
               <div style="margin-top: 8px; display: flex; align-items: center; justify-content: space-between;">
                 <span class="payment-badge-open">OPEN: &euro;${openAmount.toFixed(2)}</span>
-                <button class="btn btn-warning" onclick="event.stopPropagation(); openSettleModal(${r.reservation_id})" style="width: auto; padding: 6px 14px; font-size: 13px;">
+                <button class="btn btn-warning settle-btn" data-rid="${r.reservation_id}" style="width: auto; padding: 6px 14px; font-size: 13px;">
                   Afrekenen
                 </button>
               </div>
@@ -1494,6 +1494,15 @@ async function loadReservations() {
         </div>
       `;
     }).join('');
+
+    // Event delegation voor Afrekenen knoppen
+    container.querySelectorAll('.settle-btn').forEach(btn => {
+      btn.addEventListener('click', (e) => {
+        e.stopPropagation();
+        const rid = parseInt(btn.dataset.rid);
+        openSettleModal(rid);
+      });
+    });
 
   } catch (error) {
     console.error('Load reservations error:', error);

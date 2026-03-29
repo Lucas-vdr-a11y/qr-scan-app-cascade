@@ -36,7 +36,15 @@ async function getReservations(date) {
                 DoLoadReservationPayments: true,
                 DoLoadReservationInvoices: true,
                 DoLoadReservationDiscounts: true,
-                DoLoadReservationCodings: true
+                DoLoadReservationCodings: true,
+                TotalPriceLoadOptions: {
+                    DoIncludeAdditionalCosts: true,
+                    DoIncludeDiscounts: true,
+                    DoIncludeSales: true
+                },
+                OpenAmountLoadOptions: {
+                    DoIncludeSalePayments: true
+                }
             }
         });
 
@@ -64,7 +72,15 @@ async function getReservation(reservationId) {
                 DoLoadReservationProducts: true,
                 DoLoadReservationFinance: true,
                 DoLoadReservationDiscounts: true,
-                DoLoadReservationCodings: true
+                DoLoadReservationCodings: true,
+                TotalPriceLoadOptions: {
+                    DoIncludeAdditionalCosts: true,
+                    DoIncludeDiscounts: true,
+                    DoIncludeSales: true
+                },
+                OpenAmountLoadOptions: {
+                    DoIncludeSalePayments: true
+                }
             }
         });
 

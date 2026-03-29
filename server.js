@@ -847,11 +847,13 @@ app.get('/api/stats', async (req, res) => {
         const reservations = await semApi.getReservations(date);
 
         // Filter alleen actieve of optie-reserveringen
-        let filtered = reservations.filter(r =>
-            r.ReservationStatus === 'Approved' ||
-            r.ReservationStatus === 'Option' ||
-            r.ReservationStatus === 'Active'
-        );
+        let filtered = reservations.filter(r => {
+            const status = r.ReservationStatus;
+            if (!status) return true;
+            // ReservationStatus kan een object zijn (met .Name) of een string
+            const name = typeof status === 'string' ? status : (status.Name || '');
+            return !status.IsCancelled && name !== 'Geannuleerd';
+        });
 
         if (facility) {
             filtered = filtered.filter(r =>
