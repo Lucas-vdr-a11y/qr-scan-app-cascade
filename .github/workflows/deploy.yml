@@ -10,6 +10,22 @@ jobs:
     steps:
       - name: Trigger Coolify Deploy
         run: |
-          curl -s -X POST "http://187.124.176.167:8000/api/v1/deploy?uuid=${{ secrets.COOLIFY_APP_UUID }}" \
+          RESPONSE=$(curl -s -w "\n%{http_code}" -X POST \
+            "http://187.124.176.167:8000/api/v1/deploy?uuid=${{ secrets.COOLIFY_APP_UUID }}&force=true" \
             -H "Authorization: Bearer ${{ secrets.COOLIFY_TOKEN }}" \
-            -H "Content-Type: application/json"
+            -H "Content-Type: application/json")
+
+          HTTP_CODE=$(echo "$RESPONSE" | tail -1)
+          BODY=$(echo "$RESPONSE" | head -1)
+
+          echo "Status: $HTTP_CODE"
+          echo "Response: $BODY"
+
+          if [ "$HTTP_CODE" -lt 200 ] || [ "$HTTP_CODE" -ge 300 ]; then
+            echo "Deploy trigger failed, retrying..."
+            sleep 5
+            curl -s -X POST \
+              "http://187.124.176.167:8000/api/v1/deploy?uuid=${{ secrets.COOLIFY_APP_UUID }}&force=true" \
+              -H "Authorization: Bearer ${{ secrets.COOLIFY_TOKEN }}" \
+              -H "Content-Type: application/json"
+          fi
