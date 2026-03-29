@@ -22,6 +22,41 @@ if (!process.env.JWT_SECRET) {
 const JWT_SECRET = process.env.JWT_SECRET;
 const APP_URL = process.env.APP_URL || 'http://localhost:3000';
 
+// SSO configuratie voor Cascade cross-authenticatie
+const CASCADE_SSO_SECRET = process.env.CASCADE_SSO_SECRET || '';
+const CASCADE_API_KEY = process.env.CASCADE_API_KEY || '';
+const VAARPLANNER_API_URL = process.env.VAARPLANNER_API_URL || '';
+
+function verifySSOToken(token) {
+    const [data, signature] = token.split('.');
+    if (!data || !signature) return null;
+    const expected = crypto.createHmac('sha256', CASCADE_SSO_SECRET).update(data).digest('base64url');
+    if (signature !== expected) return null;
+    try {
+        const payload = JSON.parse(Buffer.from(data, 'base64url').toString());
+        if (payload.exp < Date.now() / 1000) return null;
+        return payload;
+    } catch (e) {
+        return null;
+    }
+}
+
+function createSSOToken(user, source, target) {
+    const payload = {
+        email: user.email || '',
+        name: user.name || user.username || '',
+        role: user.role,
+        source,
+        target,
+        nonce: crypto.randomBytes(16).toString('hex'),
+        iat: Math.floor(Date.now() / 1000),
+        exp: Math.floor(Date.now() / 1000) + 60,
+    };
+    const data = Buffer.from(JSON.stringify(payload)).toString('base64url');
+    const sig = crypto.createHmac('sha256', CASCADE_SSO_SECRET).update(data).digest('base64url');
+    return `${data}.${sig}`;
+}
+
 // Resend email client (lazy — werkt ook als RESEND_API_KEY niet is ingesteld)
 let resend = null;
 function getResend() {
@@ -145,6 +180,71 @@ app.get('/api/cascade-apps', (req, res) => {
     });
 });
 
+// ------------------------------------------------------------------
+// SSO AUTHENTICATIE (Cascade cross-app login)
+// ------------------------------------------------------------------
+
+// SSO login — verifieer token en maak lokale sessie aan
+app.get('/api/auth/sso', (req, res) => {
+    const { token } = req.query;
+    if (!token) return res.redirect('/login.html?error=missing-token');
+
+    const payload = verifySSOToken(token);
+    if (!payload) return res.redirect('/login.html?error=invalid-token');
+
+    // Zoek of maak gebruiker in lokale SQLite via database helpers
+    let user = statements.getUserByEmail(payload.email);
+
+    if (!user) {
+        // Maak gebruiker aan met willekeurig wachtwoord (login gaat via SSO)
+        const hash = bcrypt.hashSync(crypto.randomBytes(32).toString('hex'), 10);
+        const role = payload.role === 'ADMIN' ? 'admin' : 'medewerker';
+        const username = payload.email.split('@')[0];
+        statements.createUser(username, hash, role, payload.email);
+        user = statements.getUserByEmail(payload.email);
+    }
+
+    // Genereer lokale JWT
+    const localToken = jwt.sign(
+        { id: user.id, username: user.username, role: user.role },
+        JWT_SECRET,
+        { expiresIn: '12h' }
+    );
+
+    // Redirect naar app met token in URL
+    res.redirect(`/?sso_login=${localToken}&sso_role=${user.role}&sso_username=${encodeURIComponent(user.username)}`);
+});
+
+// SSO redirect — genereer SSO token en redirect naar doel-app
+app.get('/api/auth/sso-redirect', (req, res) => {
+    // Verifieer JWT van huidige sessie
+    const authHeader = req.headers['authorization'] || '';
+    const bearerToken = authHeader.split(' ')[1];
+    // Probeer ook via cookie/query als er geen auth header is (redirect vanuit browser link)
+    const refererToken = req.query.auth;
+
+    const tokenToVerify = bearerToken || refererToken;
+
+    if (!tokenToVerify) {
+        return res.status(401).json({ error: 'Niet ingelogd' });
+    }
+
+    jwt.verify(tokenToVerify, JWT_SECRET, (err, user) => {
+        if (err) return res.status(403).json({ error: 'Sessie verlopen' });
+
+        const { target } = req.query;
+        const urls = {
+            vaarplanner: process.env.VAARPLANNER_URL || 'https://planner.varenbijcascade.com',
+            werkenbij: process.env.WERKENBIJ_URL || 'https://werkenbijcascade.nl',
+        };
+
+        if (!urls[target]) return res.status(400).json({ error: 'Onbekend doel' });
+
+        const ssoToken = createSSOToken(user, 'qrscan', target);
+        res.redirect(`${urls[target]}/api/auth/sso?token=${ssoToken}`);
+    });
+});
+
 // Rate limiting op login — max 5 pogingen per 15 minuten per IP
 const loginLimiter = rateLimit({
     windowMs: 15 * 60 * 1000,
@@ -168,13 +268,64 @@ app.use('/api', apiLimiter);
 // AUTHENTICATIE & LOGIN
 // ------------------------------------------------------------------
 
-app.post('/api/login', loginLimiter, (req, res) => {
+app.post('/api/login', loginLimiter, async (req, res) => {
     const { username, password } = req.body;
 
     if (!username || !password) {
         return res.status(400).json({ error: 'Vul gebruikersnaam en wachtwoord in' });
     }
 
+    // 1. Probeer eerst centraal authenticeren via Vaarplanner API (indien geconfigureerd)
+    if (VAARPLANNER_API_URL) {
+        try {
+            const centralRes = await fetch(`${VAARPLANNER_API_URL}/api/auth/login`, {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    ...(CASCADE_API_KEY ? { 'X-API-Key': CASCADE_API_KEY } : {})
+                },
+                body: JSON.stringify({ username, password })
+            });
+
+            if (centralRes.ok) {
+                const centralData = await centralRes.json();
+
+                // Cache gebruiker lokaal (maak aan of update)
+                let localUser = statements.getUser(username);
+                const role = centralData.role === 'ADMIN' ? 'admin' : 'medewerker';
+
+                if (!localUser) {
+                    // Maak lokale gebruiker aan met hetzelfde wachtwoord
+                    const hash = bcrypt.hashSync(password, 10);
+                    statements.createUser(username, hash, role, centralData.email || null);
+                    localUser = statements.getUser(username);
+                } else {
+                    // Update lokale wachtwoord-hash en rol
+                    const hash = bcrypt.hashSync(password, 10);
+                    statements.updateUserPassword(localUser.id, hash);
+                    statements.updateUserRole(localUser.id, role);
+                    if (centralData.email) {
+                        statements.updateUserEmail(localUser.id, centralData.email);
+                    }
+                    localUser = statements.getUser(username);
+                }
+
+                const token = jwt.sign(
+                    { id: localUser.id, username: localUser.username, role: localUser.role, email: localUser.email },
+                    JWT_SECRET,
+                    { expiresIn: '12h' }
+                );
+
+                return res.json({ token, role: localUser.role, username: localUser.username });
+            }
+            // Centrale auth mislukt — val terug op lokale auth
+        } catch (centralErr) {
+            // Centrale auth niet beschikbaar — val terug op lokale auth
+            console.warn('Centrale auth niet beschikbaar, fallback naar lokaal:', centralErr.message);
+        }
+    }
+
+    // 2. Fallback: lokale authenticatie
     const user = statements.getUser(username);
 
     if (!user || !bcrypt.compareSync(password, user.password_hash)) {
@@ -253,6 +404,9 @@ app.use('/api', (req, res, next) => {
     if (req.path === '/set-password') return next();
     if (req.path === '/forgot-password') return next();
     if (req.path === '/scan-statuses') return next(); // Public endpoint for floorplan embed
+    if (req.path === '/auth/sso') return next(); // SSO login endpoint
+    if (req.path === '/auth/sso-redirect') return next(); // SSO redirect (doet eigen JWT check)
+    if (req.path === '/cascade-apps') return next(); // Cross-nav URLs
 
     const authHeader = req.headers['authorization'];
     const token = authHeader && authHeader.split(' ')[1];

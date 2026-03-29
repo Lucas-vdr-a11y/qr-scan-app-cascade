@@ -354,14 +354,24 @@
     <!-- App Script -->
     <script src="/app.js?v=12"></script>
 
-    <!-- Cascade cross-navigation -->
+    <!-- Cascade cross-navigation via SSO -->
     <script>
-        fetch('/api/cascade-apps').then(r => r.json()).then(apps => {
+        (function setupCascadeNav() {
+            const token = localStorage.getItem('auth_token');
             const vp = document.getElementById('link-vaarplanner');
             const wb = document.getElementById('link-werkenbij');
-            if (vp) vp.href = apps.vaarplanner;
-            if (wb) wb.href = apps.werkenbij;
-        }).catch(() => {});
+            if (token) {
+                // Gebruik SSO redirect endpoint voor cross-app navigatie
+                if (vp) vp.href = '/api/auth/sso-redirect?target=vaarplanner&auth=' + encodeURIComponent(token);
+                if (wb) wb.href = '/api/auth/sso-redirect?target=werkenbij&auth=' + encodeURIComponent(token);
+            } else {
+                // Fallback: directe links zonder SSO
+                fetch('/api/cascade-apps').then(r => r.json()).then(apps => {
+                    if (vp) vp.href = apps.vaarplanner;
+                    if (wb) wb.href = apps.werkenbij;
+                }).catch(() => {});
+            }
+        })();
     </script>
 
     <!-- Service Worker Registration -->
