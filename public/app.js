@@ -507,7 +507,7 @@ async function processScan(reservationId) {
       return;
     }
     console.error('Scan processing error:', error);
-    alert('Scan fout: ' + (error.message || 'Onbekende fout') + '\n\nStack: ' + (error.stack || '').substring(0, 300));
+    showErrorModal(error.message || 'Fout bij ophalen reservering');
   }
 }
 
@@ -519,7 +519,7 @@ async function openReservationDetail(reservationId) {
     showReservationOverview(reservationId, data, true);
   } catch (error) {
     console.error('Error opening detail:', error);
-    alert('Fout: ' + (error.message || 'Onbekende fout') + '\n\nStack: ' + (error.stack || '').substring(0, 300));
+    showErrorModal(error.message || 'Fout bij ophalen details');
   }
 }
 
@@ -1487,7 +1487,7 @@ async function loadReservations() {
             ` : '';
 
       return `
-        <div class="reservation-card status-${r.scan_status}" data-search="${escapeHtml((r.name + ' ' + (r.contact_name || '') + ' ' + r.reservation_id).toLowerCase())}" onclick="openReservationDetail(${r.reservation_id})" style="cursor: pointer;">
+        <div class="reservation-card status-${r.scan_status}" data-search="${escapeHtml((r.name + ' ' + (r.contact_name || '') + ' ' + r.reservation_id).toLowerCase())}" data-rid="${r.reservation_id}" style="cursor: pointer;">
           <div class="reservation-header">
             <div>
               <div class="reservation-name">${r.name}</div>
@@ -1530,7 +1530,13 @@ async function loadReservations() {
       `;
     }).join('');
 
-    // Event delegation voor Afrekenen knoppen
+    // Event delegation voor kaarten en knoppen
+    container.querySelectorAll('.reservation-card').forEach(card => {
+      card.addEventListener('click', () => {
+        const rid = parseInt(card.dataset.rid);
+        if (rid) openReservationDetail(rid);
+      });
+    });
     container.querySelectorAll('.settle-btn').forEach(btn => {
       btn.addEventListener('click', (e) => {
         e.stopPropagation();
