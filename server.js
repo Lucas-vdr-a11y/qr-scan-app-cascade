@@ -181,6 +181,14 @@ app.get('/sw.js', (req, res) => {
     res.sendFile(path.join(__dirname, 'public', 'sw.js'));
 });
 
+// Login pagina redirect naar centraal dashboard
+app.get('/login.html', (req, res) => {
+    res.redirect('https://dashboard.varenbijcascade.com');
+});
+app.get('/login', (req, res) => {
+    res.redirect('https://dashboard.varenbijcascade.com');
+});
+
 app.use(express.static(path.join(__dirname, 'public')));
 
 // Cascade app URLs for cross-navigation
@@ -198,10 +206,10 @@ app.get('/api/cascade-apps', (req, res) => {
 // SSO login — verifieer token en maak lokale sessie aan
 app.get('/api/auth/sso', (req, res) => {
     const { token } = req.query;
-    if (!token) return res.redirect('/login.html?error=missing-token');
+    if (!token) return res.redirect('https://dashboard.varenbijcascade.com');
 
     const payload = verifySSOToken(token);
-    if (!payload) return res.redirect('/login.html?error=invalid-token');
+    if (!payload) return res.redirect('https://dashboard.varenbijcascade.com');
 
     // Zoek of maak gebruiker in lokale SQLite via database helpers
     let user = statements.getUserByEmail(payload.email);

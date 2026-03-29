@@ -77,7 +77,7 @@ async function authFetch(url, options = {}) {
 
   if (res.status === 401 || res.status === 403) {
     localStorage.removeItem('auth_token');
-    window.location.href = '/login.html';
+    window.location.href = 'https://dashboard.varenbijcascade.com';
     throw new Error('Niet ingelogd');
   }
   return res;
@@ -86,7 +86,7 @@ async function authFetch(url, options = {}) {
 function checkAuth() {
   const token = localStorage.getItem('auth_token');
   if (!token) {
-    window.location.href = '/login.html';
+    window.location.href = 'https://dashboard.varenbijcascade.com';
     return false;
   }
   const role = localStorage.getItem('user_role');
@@ -2143,7 +2143,7 @@ document.addEventListener('DOMContentLoaded', () => {
         localStorage.removeItem('auth_token');
         localStorage.removeItem('user_role');
         localStorage.removeItem('username');
-        window.location.href = '/login.html';
+        window.location.href = 'https://dashboard.varenbijcascade.com';
       };
 
       if (cancelBtn) cancelBtn.onclick = () => {
