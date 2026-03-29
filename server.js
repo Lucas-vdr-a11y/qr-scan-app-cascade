@@ -1325,20 +1325,41 @@ app.get('/api/scan-statuses', (req, res) => {
 
 /**
  * GET /api/departures?date=YYYY-MM-DD&facility=ID
- * Haal vertrek-reserveringen op (CodingChoiceID=1) voor de plattegrond
+ * Haal vertrek-reserveringen op via de VaarPlanner API (inclusief multi-block/Maasparel info).
+ * Fallback naar directe SEM call als VAARPLANNER_URL niet geconfigureerd is.
  */
 app.get('/api/departures', async (req, res) => {
     const { date = getCurrentDate(), facility } = req.query;
+    const vaarplannerUrl = process.env.VAARPLANNER_URL;
+    const apiKey = process.env.VAARPLANNER_API_KEY;
 
+    // Probeer via VaarPlanner API (bevat blok-info voor Maasparel)
+    if (vaarplannerUrl && apiKey) {
+        try {
+            const axios = require('axios');
+            const params = { date };
+            if (facility) params.facility = facility;
+
+            const vpRes = await axios.get(`${vaarplannerUrl}/api/embed/departures`, {
+                params,
+                headers: { 'Authorization': `Bearer ${apiKey}` }
+            });
+
+            return res.json(vpRes.data);
+        } catch (error) {
+            console.error('VaarPlanner departures error, falling back to SEM:', error?.response?.data || error.message);
+            // Fallback naar SEM
+        }
+    }
+
+    // Fallback: directe SEM call (zonder blok-info)
     try {
         const reservations = await semApi.getReservations(date);
 
-        // Filter alleen vertrek-reserveringen (CodingChoiceID === 1)
         let departures = reservations.filter(r =>
             r.ReservationCodings?.some(c => c.ReservationCodingChoiceID === 1)
         );
 
-        // Filter op facility indien opgegeven
         if (facility) {
             const facilityId = parseInt(facility);
             departures = departures.filter(r =>
@@ -1354,7 +1375,8 @@ app.get('/api/departures', async (req, res) => {
             facilities: r.ReservationFacilities?.map(f => ({
                 id: f.FacilityID,
                 name: f.FacilityName
-            })) || []
+            })) || [],
+            blocks: null
         }));
 
         res.json(result);
@@ -1384,17 +1406,17 @@ app.post('/api/floorplan-token', async (req, res) => {
         });
     }
 
-    const { departureId, date } = req.body;
+    const { departureId, date, block } = req.body;
     if (!departureId || !date) {
         return res.status(400).json({ error: 'Vertrek-ID en datum zijn verplicht' });
     }
 
     try {
         const axios = require('axios');
-        const tokenRes = await axios.post(`${vaarplannerUrl}/api/embed/token`, {
-            departureId: String(departureId),
-            date
-        }, {
+        const tokenBody = { departureId: String(departureId), date };
+        if (block != null) tokenBody.block = parseInt(block);
+
+        const tokenRes = await axios.post(`${vaarplannerUrl}/api/embed/token`, tokenBody, {
             headers: {
                 'Authorization': `Bearer ${apiKey}`,
                 'Content-Type': 'application/json'

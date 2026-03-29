@@ -1583,6 +1583,8 @@ if (refreshBtn) {
 
 // ==================== FLOORPLAN SCREEN ====================
 
+let cachedDepartures = [];
+
 // Floorplan ship toggle
 document.querySelectorAll('[data-floorplan-facility]').forEach(btn => {
   btn.addEventListener('click', () => {
@@ -1598,12 +1600,64 @@ const departureSelect = document.getElementById('departure-select');
 if (departureSelect) {
   departureSelect.addEventListener('change', () => {
     const departureId = departureSelect.value;
-    if (departureId) {
-      loadFloorplan(departureId);
-    } else {
+    if (!departureId) {
+      hideBlockSelector();
       showFloorplanPlaceholder();
+      return;
+    }
+
+    const dep = cachedDepartures.find(d => String(d.reservation_id) === String(departureId));
+    if (dep && dep.blocks && dep.blocks.length > 1) {
+      showBlockSelector(dep.blocks, departureId);
+    } else {
+      hideBlockSelector();
+      loadFloorplan(departureId, null);
     }
   });
+}
+
+function showBlockSelector(blocks, departureId) {
+  const container = document.getElementById('block-selector');
+  if (!container) return;
+
+  // Auto-select: vind welk blok nu actief is op basis van tijd
+  const now = Date.now();
+  let autoIndex = 0;
+  for (let i = 0; i < blocks.length; i++) {
+    const start = new Date(blocks[i].startTime).getTime();
+    const end = new Date(blocks[i].endTime).getTime();
+    if (now >= start && now < end) { autoIndex = i; break; }
+    if (now >= end) autoIndex = i;
+  }
+
+  container.innerHTML = blocks.map((b, idx) => {
+    const startStr = new Date(b.startTime).toLocaleTimeString('nl-NL', { hour: '2-digit', minute: '2-digit' });
+    const endStr = new Date(b.endTime).toLocaleTimeString('nl-NL', { hour: '2-digit', minute: '2-digit' });
+    const active = idx === autoIndex ? 'active' : '';
+    return `<button class="block-btn ${active}" data-block-index="${idx}" data-departure-id="${departureId}">${b.name} (${startStr}–${endStr})</button>`;
+  }).join('');
+
+  container.style.display = 'flex';
+
+  // Klik-handlers
+  container.querySelectorAll('.block-btn').forEach(btn => {
+    btn.addEventListener('click', () => {
+      container.querySelectorAll('.block-btn').forEach(b => b.classList.remove('active'));
+      btn.classList.add('active');
+      loadFloorplan(btn.dataset.departureId, parseInt(btn.dataset.blockIndex));
+    });
+  });
+
+  // Laad automatisch het gedetecteerde blok
+  loadFloorplan(departureId, autoIndex);
+}
+
+function hideBlockSelector() {
+  const container = document.getElementById('block-selector');
+  if (container) {
+    container.style.display = 'none';
+    container.innerHTML = '';
+  }
 }
 
 async function loadDepartures() {
@@ -1612,10 +1666,12 @@ async function loadDepartures() {
 
   select.innerHTML = '<option value="">Laden...</option>';
   select.disabled = true;
+  hideBlockSelector();
 
   try {
     const response = await authFetch(`${API_BASE}/api/departures?date=${getCurrentDate()}&facility=${currentFloorplanFacility}`);
     const departures = await response.json();
+    cachedDepartures = departures;
 
     if (departures.length === 0) {
       select.innerHTML = '<option value="">Geen vertrekken vandaag</option>';
@@ -1627,13 +1683,19 @@ async function loadDepartures() {
       departures.map(d => {
         const time = formatTime(d.start_time);
         const endTime = formatTime(d.end_time);
-        return `<option value="${d.reservation_id}">${d.name} (${time} - ${endTime})</option>`;
+        const blockLabel = d.blocks && d.blocks.length > 1 ? ` [${d.blocks.length} blokken]` : '';
+        return `<option value="${d.reservation_id}">${d.name} (${time} - ${endTime})${blockLabel}</option>`;
       }).join('');
 
     // Auto-select if only one departure
     if (departures.length === 1) {
       select.value = departures[0].reservation_id;
-      loadFloorplan(departures[0].reservation_id);
+      const dep = departures[0];
+      if (dep.blocks && dep.blocks.length > 1) {
+        showBlockSelector(dep.blocks, dep.reservation_id);
+      } else {
+        loadFloorplan(dep.reservation_id, null);
+      }
     } else {
       showFloorplanPlaceholder();
     }
@@ -1647,7 +1709,7 @@ async function loadDepartures() {
   }
 }
 
-async function loadFloorplan(departureId) {
+async function loadFloorplan(departureId, block) {
   const container = document.getElementById('floorplan-container');
   if (!container) return;
 
@@ -1661,10 +1723,13 @@ async function loadFloorplan(departureId) {
 
   try {
     // Request temporary embed token from server (API key stays server-side)
+    const tokenBody = { departureId, date: getCurrentDate() };
+    if (block != null) tokenBody.block = block;
+
     const tokenRes = await authFetch(`${API_BASE}/api/floorplan-token`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ departureId, date: getCurrentDate() })
+      body: JSON.stringify(tokenBody)
     });
 
     if (!tokenRes.ok) {
