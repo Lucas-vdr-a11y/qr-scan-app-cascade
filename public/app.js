@@ -307,7 +307,7 @@ function formatProductsInfo(products, isCollapsible = false) {
             </div>
             ${hasNotes ? `
             <div class="hidden" style="margin-top: 6px; padding: 8px; background: var(--bg-body); border-radius: 4px; font-size: 13px; line-height: 1.4; color: var(--text-secondary); border-left: 3px solid var(--brand-accent);">
-                📝 ${escapeHtml(p.notes.trim())}
+                ${escapeHtml(p.notes.trim())}
             </div>
             ` : ''}
         </div>
@@ -318,7 +318,7 @@ function formatProductsInfo(products, isCollapsible = false) {
     return `
         <details class="products-collapsible" style="margin-top: 12px;" onclick="event.stopPropagation()">
             <summary style="cursor: pointer; font-size: 13px; font-weight: 600; color: var(--brand-accent); display: flex; align-items: center; justify-content: space-between; background: var(--bg-tertiary); padding: 8px 12px; border-radius: 8px;">
-                <span>📋 Extra producten (${products.length})</span>
+                <span>Extra producten (${products.length})</span>
                 <span class="toggle-icon">▼</span>
             </summary>
             <div class="warning-box" style="background: var(--bg-secondary); border-color: var(--border-subtle); color: var(--text-primary); margin-top: 4px; padding: 12px; box-shadow: var(--shadow-card);">
@@ -331,7 +331,7 @@ function formatProductsInfo(products, isCollapsible = false) {
   return `
     <div class="warning-box" style="background: var(--bg-primary); border-color: var(--border-subtle); color: var(--text-primary); margin-top: 12px;">
         <div style="font-weight: 700; margin-bottom: 8px; font-size: 14px; border-bottom: 1px solid var(--border-subtle); padding-bottom: 4px; display: flex; align-items: center; gap: 6px;">
-            <span>📋 Extra producten</span>
+            <span>Extra producten</span>
         </div>
         ${productsHtml}
     </div>
@@ -548,7 +548,7 @@ function showReservationOverview(reservationId, data, showPhone = true) {
     year: 'numeric'
   });
 
-  title.textContent = `📋 ${data.reservation_name || `Reservering #${reservationId}`}`;
+  title.textContent = data.reservation_name || `Reservering #${reservationId}`;
 
   // Body: show comprehensive info with new styling
   let statusBanner = '';
@@ -557,7 +557,7 @@ function showReservationOverview(reservationId, data, showPhone = true) {
     statusBanner = `
         <div class="warning-box" style="background: var(--status-warn-bg); border-color: var(--status-warn); color: var(--status-warn);">
              <div style="font-size: 16px; font-weight: 700; display: flex; align-items: center; gap: 8px;">
-                ⚠️ LET OP: TOEKOMSTIGE DATUM
+                LET OP: TOEKOMSTIGE DATUM
              </div>
              <div style="margin-top: 4px; color: var(--text-primary);">
                 Datum: ${formattedDate}
@@ -595,7 +595,7 @@ function showReservationOverview(reservationId, data, showPhone = true) {
       ${data.start_time ? `
       <div class="info-row">
         <span class="info-label">Tijd</span>
-        <span class="info-value">🕐 ${formatTime(data.start_time)} - ${formatTime(data.end_time)}</span>
+        <span class="info-value" style="display: flex; align-items: center; gap: 6px;"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg> ${formatTime(data.start_time)} - ${formatTime(data.end_time)}</span>
       </div>
       ` : ''}
 
@@ -604,20 +604,20 @@ function showReservationOverview(reservationId, data, showPhone = true) {
       <div class="info-row">
         <span class="info-label">Contactpersoon</span>
         <span class="info-value" style="font-weight: 500; display: flex; flex-direction: column; align-items: flex-end;">
-            <span>👤 ${escapeHtml(data.contact_name) || '-'}</span>
-            ${showPhone && data.contact_phone ? `<a href="tel:${escapeHtml(data.contact_phone)}" style="color: var(--brand-accent); font-size: 14px; text-decoration: none; margin-top: 4px;">📞 ${escapeHtml(data.contact_phone)}</a>` : ''}
+            <span>${escapeHtml(data.contact_name) || '-'}</span>
+            ${showPhone && data.contact_phone ? `<a href="tel:${escapeHtml(data.contact_phone)}" style="color: var(--brand-accent); font-size: 14px; text-decoration: none; margin-top: 4px; display: flex; align-items: center; gap: 4px;"><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M22 16.92v3a2 2 0 0 1-2.18 2 19.79 19.79 0 0 1-8.63-3.07 19.5 19.5 0 0 1-6-6A19.79 19.79 0 0 1 2.12 4.11 2 2 0 0 1 4.11 2h3a2 2 0 0 1 2 1.72c.127.96.361 1.903.7 2.81a2 2 0 0 1-.45 2.11L8.09 9.91a16 16 0 0 0 6 6l1.27-1.27a2 2 0 0 1 2.11-.45c.907.339 1.85.573 2.81.7A2 2 0 0 1 22 16.92z"/></svg> ${escapeHtml(data.contact_phone)}</a>` : ''}
         </span>
       </div>
 
       <div class="info-row">
         <span class="info-label">Aantal personen</span>
         <div style="text-align: right;">
-          <div class="info-value" style="font-size: 1.2em; font-weight: bold;">👥 ${totalPersons}</div>
+          <div class="info-value" style="font-size: 1.2em; font-weight: bold;">${totalPersons}</div>
           ${data.child_counts && (data.child_counts.kids > 0 || data.child_counts.babies > 0) ? `
             <div style="font-size: 13px; color: var(--text-secondary); margin-top: 2px;">
-              ${data.child_counts.kids > 0 ? `<span>🧒 ${data.child_counts.kids} kinderen</span>` : ''}
-              ${data.child_counts.kids > 0 && data.child_counts.babies > 0 ? ' • ' : ''}
-              ${data.child_counts.babies > 0 ? `<span>👶 ${data.child_counts.babies} (0-3 jr)</span>` : ''}
+              ${data.child_counts.kids > 0 ? `<span>${data.child_counts.kids} kinderen</span>` : ''}
+              ${data.child_counts.kids > 0 && data.child_counts.babies > 0 ? ' / ' : ''}
+              ${data.child_counts.babies > 0 ? `<span>${data.child_counts.babies} baby's</span>` : ''}
             </div>
           ` : ''}
         </div>
@@ -654,7 +654,7 @@ function showReservationOverview(reservationId, data, showPhone = true) {
       
       ${data.validation_warnings && data.validation_warnings.length > 0 ? `
         <div class="warning-box">
-          <div style="font-weight: 700; margin-bottom: 4px;">⚠️ Aandachtspunten:</div>
+          <div style="font-weight: 700; margin-bottom: 4px;">Aandachtspunten:</div>
           ${data.validation_warnings.map(w => `<div>• ${w}</div>`).join('')}
         </div>
       ` : ''}
@@ -682,8 +682,8 @@ function showReservationOverview(reservationId, data, showPhone = true) {
       ${data.internal_notes && data.internal_notes.trim() ? `
         <details class="notes-collapsible" style="margin-top: 12px; background: var(--surface-light); border-radius: 8px; padding: 8px;">
           <summary style="cursor: pointer; font-weight: 600; color: var(--text-primary); display: flex; align-items: center; gap: 8px; user-select: none;">
-            <span class="toggle-icon" style="font-size: 14px;">▶</span>
-            📝 Interne notities
+            <span class="toggle-icon" style="font-size: 14px;">&#9654;</span>
+            Interne notities
           </summary>
           <div style="margin-top: 8px; padding: 8px; background: var(--bg-body); border-radius: 4px; font-size: 14px; line-height: 1.5; white-space: pre-wrap; color: var(--text-secondary);">
             ${escapeHtml(data.internal_notes.trim())}
@@ -722,7 +722,7 @@ function showReservationOverview(reservationId, data, showPhone = true) {
             <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="11" width="18" height="11" rx="2" ry="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg> Heenreis Scannen
           </button>
           <button class="btn btn-primary" id="scan-terug-btn" style="flex: 1;">
-            🏠 Terugreis Scannen
+            Terugreis Scannen
           </button>
         </div>
         <button class="btn btn-secondary" id="cancel-scan-btn">
@@ -765,7 +765,7 @@ function showReservationOverview(reservationId, data, showPhone = true) {
     // Show override option for wrong date or already scanned (including overcapacity)
     footer.innerHTML = `
         <button class="btn btn-warning" id="force-scan-btn">
-          ⚠️ Toch Toelaten (Override)
+          Toch Toelaten (Override)
         </button>
         <button class="btn btn-secondary" id="cancel-scan-btn" style="margin-top: 8px;">
           Annuleer
@@ -809,7 +809,7 @@ function showOverrideScanInput(reservationId, totalPersons) {
   if (!existingInfo.querySelector('.override-alert')) {
     const warning = document.createElement('div');
     warning.className = 'warning-box override-alert';
-    warning.innerHTML = '⚠️ <strong>Override Modus</strong><br>Je gaat personen toelaten buiten de normale regels. Dit wordt gelogd.';
+    warning.innerHTML = '<strong>Override Modus</strong><br>Je gaat personen toelaten buiten de normale regels. Dit wordt gelogd.';
     existingInfo.insertBefore(warning, existingInfo.firstChild);
   }
 
@@ -1150,7 +1150,7 @@ function showSuccessModal(result) {
 
       <div class="info-row">
         <span class="info-label">Naam</span>
-        <span class="info-value">👤 ${escapeHtml(result.contact_name) || '-'}</span>
+        <span class="info-value">${escapeHtml(result.contact_name) || '-'}</span>
       </div>
       
       <div class="info-row">
@@ -1164,7 +1164,7 @@ function showSuccessModal(result) {
 
       ${result.tour_status ? `
       <div class="info-row" style="background: var(--status-info-bg); padding: 12px; border-radius: 8px; margin-top: 12px;">
-        <span class="info-label" style="color: var(--status-info);">🚢 Tour de Thorn</span>
+        <span class="info-label" style="color: var(--status-info);">Tour de Thorn</span>
         <span class="info-value" style="color: var(--status-info); font-weight: 700;">${result.tour_status}</span>
       </div>
       ` : ''}
@@ -1179,9 +1179,9 @@ function showSuccessModal(result) {
           </div>
           ${result.child_counts && (result.child_counts.kids > 0 || result.child_counts.babies > 0) ? `
             <div style="font-size: 12px; color: var(--text-secondary); margin-top: 2px;">
-              ${result.child_counts.kids > 0 ? `🧒 ${result.child_counts.kids}` : ''}
-              ${result.child_counts.kids > 0 && result.child_counts.babies > 0 ? ' • ' : ''}
-              ${result.child_counts.babies > 0 ? `👶 ${result.child_counts.babies} (0-3 jr)` : ''}
+              ${result.child_counts.kids > 0 ? `${result.child_counts.kids} kinderen` : ''}
+              ${result.child_counts.kids > 0 && result.child_counts.babies > 0 ? ' / ' : ''}
+              ${result.child_counts.babies > 0 ? `${result.child_counts.babies} baby's` : ''}
             </div>
           ` : ''}
         </div>
@@ -1356,7 +1356,7 @@ function showErrorModal(message) {
   const body = document.getElementById('result-body');
   const footer = document.getElementById('result-footer');
 
-  title.textContent = '❌ Fout';
+  title.textContent = 'Fout';
   body.innerHTML = `<p style="color: var(--error);">${escapeHtml(message)}</p>`;
   footer.innerHTML = `
     <button class="btn btn-secondary" id="close-error-btn">Sluiten</button>
@@ -1509,10 +1509,10 @@ async function loadReservations() {
           
           <div class="reservation-meta">
             <div class="meta-item">
-              👥 ${total} personen
+              ${total} personen
               ${r.child_counts && (r.child_counts.kids > 0 || r.child_counts.babies > 0) ? `
                 <span style="opacity: 0.7; font-size: 11px; margin-left: 4px;">
-                  (${r.child_counts.kids > 0 ? `🧒${r.child_counts.kids}` : ''}${r.child_counts.kids > 0 && r.child_counts.babies > 0 ? '•' : ''}${r.child_counts.babies > 0 ? `👶${r.child_counts.babies}` : ''})
+                  (${r.child_counts.kids > 0 ? `${r.child_counts.kids} kind.` : ''}${r.child_counts.kids > 0 && r.child_counts.babies > 0 ? ' / ' : ''}${r.child_counts.babies > 0 ? `${r.child_counts.babies} baby` : ''})
                 </span>
               ` : ''}
             </div>
@@ -1569,7 +1569,7 @@ if (refreshBtn) {
     refreshBtn.disabled = true;
     refreshBtn.classList.add('refreshing');
     const originalText = refreshBtn.innerHTML;
-    refreshBtn.innerHTML = '🔄 Verversen...';
+    refreshBtn.innerHTML = 'Verversen...';
 
     await loadReservations();
 
@@ -1709,7 +1709,7 @@ function showFloorplanError(message) {
 
   container.innerHTML = `
         <div class="floorplan-error">
-            <span style="font-size: 32px;">⚠️</span>
+            <svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="var(--status-deny)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><line x1="15" y1="9" x2="9" y2="15"/><line x1="9" y1="9" x2="15" y2="15"/></svg>
             <p>${message}</p>
         </div>
     `;
