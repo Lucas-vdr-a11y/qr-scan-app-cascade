@@ -241,7 +241,7 @@ app.get('/api/auth/sso-redirect', (req, res) => {
         if (!urls[target]) return res.status(400).json({ error: 'Onbekend doel' });
 
         const ssoToken = createSSOToken(user, 'qrscan', target);
-        res.redirect(`${urls[target]}/api/auth/sso?token=${ssoToken}`);
+        res.redirect(`${urls[target]}/api/sso/receive?token=${ssoToken}`);
     });
 });
 
