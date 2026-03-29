@@ -103,6 +103,21 @@ function checkAuth() {
   return true;
 }
 
+// Check for SSO login token in URL (Cascade cross-app SSO)
+(function handleSSOLogin() {
+  const urlParams = new URLSearchParams(window.location.search);
+  const ssoToken = urlParams.get('sso_login');
+  if (ssoToken) {
+    localStorage.setItem('auth_token', ssoToken);
+    const ssoRole = urlParams.get('sso_role');
+    const ssoUsername = urlParams.get('sso_username');
+    if (ssoRole) localStorage.setItem('user_role', ssoRole);
+    if (ssoUsername) localStorage.setItem('username', ssoUsername);
+    // Verwijder SSO parameters uit URL
+    window.history.replaceState({}, '', '/');
+  }
+})();
+
 // Run auth check immediately
 checkAuth();
 
@@ -771,8 +786,12 @@ function showReservationOverview(reservationId, data, showPhone = true) {
   // Settle knop event listener (indien aanwezig in de body)
   const settleBtn = document.getElementById('settle-from-detail-btn');
   if (settleBtn) {
-    settleBtn.addEventListener('click', () => {
-      openSettleModal(reservationId, data);
+    settleBtn.addEventListener('click', (e) => {
+      e.stopPropagation();
+      openSettleModal(reservationId, data).catch(err => {
+        console.error('Settle modal error:', err);
+        alert('Fout bij openen afrekenscherm: ' + err.message);
+      });
     });
   }
 
@@ -843,41 +862,45 @@ async function openSettleModal(reservationId, existingData = null) {
   const body = document.getElementById('result-body');
   const footer = document.getElementById('result-footer');
 
+  function showCloseButton() {
+    footer.innerHTML = '<button class="btn btn-secondary" onclick="document.getElementById(\'scan-result-modal\').classList.remove(\'active\')">Sluiten</button>';
+  }
+
   // Toon loading
   title.textContent = 'Afrekenen';
   body.innerHTML = '<div class="loading">Laden...</div>';
-  footer.innerHTML = '';
+  showCloseButton();
   modal.classList.add('active');
 
-  // Haal data op als die niet is doorgegeven
-  let data = existingData;
-  if (!data || !data.finance) {
-    try {
-      const response = await authFetch(`${API_BASE}/api/reservation/${reservationId}`);
-      if (!response.ok) throw new Error('Kan reservering niet ophalen');
-      data = await response.json();
-    } catch (error) {
-      body.innerHTML = `<div class="warning-box">${escapeHtml(error.message)}</div>`;
-      footer.innerHTML = '<button class="btn btn-secondary" onclick="document.getElementById(\'scan-result-modal\').classList.remove(\'active\')">Sluiten</button>';
-      return;
-    }
+  try {
+  // Altijd vers ophalen voor actuele finance data
+  let data;
+  try {
+    const response = await authFetch(`${API_BASE}/api/reservation/${reservationId}`);
+    if (!response.ok) throw new Error('Kan reservering niet ophalen');
+    data = await response.json();
+  } catch (error) {
+    body.innerHTML = `<div class="warning-box">${escapeHtml(error.message)}</div>`;
+    showCloseButton();
+    return;
   }
 
   const finance = data.finance;
   if (!finance || finance.open_amount <= 0.01) {
     body.innerHTML = '<div class="warning-box" style="background: var(--status-ok-bg); border-color: var(--status-ok); color: var(--status-ok);">Reservering is al betaald</div>';
-    footer.innerHTML = '<button class="btn btn-secondary" onclick="document.getElementById(\'scan-result-modal\').classList.remove(\'active\')">Sluiten</button>';
+    showCloseButton();
     return;
   }
 
   title.textContent = 'Afrekenen';
 
   // Producten weergave
-  const compulsoryProducts = finance.products.filter(p => p.type !== 'OptionalUnselected' && p.total_price > 0);
+  const products = finance.products || [];
+  const compulsoryProducts = products.filter(p => p.type !== 'OptionalUnselected' && (p.total_price || 0) > 0);
   const productRows = compulsoryProducts.map(p => `
     <div style="display: flex; justify-content: space-between; font-size: 13px; padding: 4px 0; border-bottom: 1px solid var(--border-subtle, #eee);">
       <span>${escapeHtml(p.name)} ${p.quantity > 0 ? '(' + p.quantity + 'x)' : ''}</span>
-      <span style="font-weight: 600;">&euro;${p.total_price.toFixed(2)}</span>
+      <span style="font-weight: 600;">&euro;${(p.total_price || 0).toFixed(2)}</span>
     </div>
   `).join('');
 
@@ -969,6 +992,12 @@ async function openSettleModal(reservationId, existingData = null) {
   document.getElementById('cancel-settle-btn').addEventListener('click', () => {
     modal.classList.remove('active');
   });
+
+  } catch (err) {
+    console.error('openSettleModal error:', err);
+    body.innerHTML = `<div class="warning-box">Fout bij openen afrekenscherm: ${escapeHtml(err.message)}</div>`;
+    showCloseButton();
+  }
 }
 
 function showSettlementSuccess(reservationData, amount, method, semSynced) {
@@ -1251,8 +1280,12 @@ function showDeniedModal(result, reservationId, personsEntering) {
       </button>
     `;
 
-    document.getElementById('settle-now-btn').addEventListener('click', () => {
-      openSettleModal(reservationId);
+    document.getElementById('settle-now-btn').addEventListener('click', (e) => {
+      e.stopPropagation();
+      openSettleModal(reservationId).catch(err => {
+        console.error('Settle modal error:', err);
+        alert('Fout bij openen afrekenscherm: ' + err.message);
+      });
     });
 
     document.getElementById('force-allow-btn').addEventListener('click', () => {
