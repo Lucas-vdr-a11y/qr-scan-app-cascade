@@ -863,7 +863,7 @@ app.get('/api/stats', async (req, res) => {
 
         // Verberg als ReservationCodingChoiceID = 1 (Online publiceren ja = Nulboeking)
         filtered = filtered.filter(r =>
-            !r.ReservationCodings.some(c => c.ReservationCodingChoiceID === 1)
+            !r.ReservationCodings?.some(c => c.ReservationCodingChoiceID === 1)
         );
 
         const scanStatuses = facility

@@ -36,15 +36,7 @@ async function getReservations(date) {
                 DoLoadReservationPayments: true,
                 DoLoadReservationInvoices: true,
                 DoLoadReservationDiscounts: true,
-                DoLoadReservationCodings: true,
-                TotalPriceLoadOptions: {
-                    DoIncludeAdditionalCosts: true,
-                    DoIncludeDiscounts: true,
-                    DoIncludeSales: true
-                },
-                OpenAmountLoadOptions: {
-                    DoIncludeSalePayments: true
-                }
+                DoLoadReservationCodings: true
             }
         });
 
