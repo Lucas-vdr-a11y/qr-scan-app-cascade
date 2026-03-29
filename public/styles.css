@@ -2,7 +2,7 @@
     /* ==================== COLOR TOKENS ==================== */
 
     /* Brand Palette - Rederij Cascade */
-    --brand-primary: #092D61;
+    --brand-primary: #212f4f;
     /* Marineblauw */
     --brand-accent: #B49253;
     /* Helderblauw */
@@ -14,7 +14,7 @@
     /* Amber-600 */
     --status-deny: #dc2626;
     /* Red-600 */
-    --status-info: #49648A;
+    --status-info: #3d4a63;
     /* Helderblauw */
 
     /* Status Backgrounds (Simulated typically 10-15% opacity) */
@@ -24,24 +24,24 @@
     /* Amber-50 */
     --status-deny-bg: #fef2f2;
     /* Red-50 */
-    --status-info-bg: #DAE0E8;
+    --status-info-bg: #d7d7d7;
     /* Light Accent */
 
     /* Neutral Palette (Light Mode Default) */
-    --bg-primary: #F9F7F5;
+    --bg-primary: #f9f7f4;
     --bg-secondary: #ffffff;
-    --bg-tertiary: #EDECEA;
+    --bg-tertiary: #edecea;
     /* Neutral-100 */
 
-    --text-primary: #092D61;
+    --text-primary: #212f4f;
     /* Neutral-900 / Marineblauw voor tekst */
-    --text-secondary: #49648A;
+    --text-secondary: #3d4a63;
     /* Blauw/Grijs */
     --text-muted: #a3a3a3;
     /* Neutral-400 */
     --text-inverse: #ffffff;
 
-    --border-subtle: #DAE0E8;
+    --border-subtle: #d7d7d7;
     /* Neutral-200 */
     --border-focus: #B49253;
     /* Blue-300 */
@@ -261,10 +261,10 @@ input {
     justify-content: center;
     padding: 12px 20px;
     /* Touch target */
-    border-radius: var(--radius-button);
+    border-radius: 2em;
     font-weight: 600;
     font-size: 16px;
-    transition: transform 0.1s, opacity 0.2s;
+    transition: transform 0.15s ease, opacity 0.2s ease, background-color 0.2s ease, box-shadow 0.2s ease;
     width: 100%;
 }
 
@@ -273,9 +273,14 @@ input {
 }
 
 .btn-primary {
-    background-color: var(--brand-primary);
+    background-color: var(--brand-accent);
     color: var(--text-inverse);
-    box-shadow: 0 2px 4px rgba(11, 42, 58, 0.2);
+    box-shadow: 0 2px 4px rgba(180, 146, 83, 0.3);
+}
+
+.btn-primary:hover {
+    background-color: #a3833e;
+    box-shadow: 0 4px 8px rgba(180, 146, 83, 0.35);
 }
 
 .btn-secondary {
