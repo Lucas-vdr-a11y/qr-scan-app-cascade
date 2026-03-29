@@ -356,32 +356,13 @@
 
     <!-- Cascade cross-navigation via SSO -->
     <script>
-        function updateCascadeLinks() {
-            const token = localStorage.getItem('auth_token');
+        // Directe links naar Cascade tools (SSO nog niet geconfigureerd op doel-apps)
+        fetch('/api/cascade-apps').then(r => r.json()).then(apps => {
             const vp = document.getElementById('link-vaarplanner');
             const wb = document.getElementById('link-werkenbij');
-            if (token) {
-                if (vp) vp.href = '/api/auth/sso-redirect?target=vaarplanner&auth=' + encodeURIComponent(token);
-                if (wb) wb.href = '/api/auth/sso-redirect?target=werkenbij&auth=' + encodeURIComponent(token);
-            } else {
-                fetch('/api/cascade-apps').then(r => r.json()).then(apps => {
-                    if (vp) vp.href = apps.vaarplanner;
-                    if (wb) wb.href = apps.werkenbij;
-                }).catch(() => {});
-            }
-        }
-        updateCascadeLinks();
-        // Links klikbaar maken los van nav-item handler
-        document.querySelectorAll('.cascade-tool-link').forEach(link => {
-            link.addEventListener('click', (e) => {
-                if (link.href && link.href !== '#' && !link.href.endsWith('#')) return; // laat <a> gewoon werken
-                e.preventDefault();
-                updateCascadeLinks();
-                if (link.href && link.href !== '#' && !link.href.endsWith('#')) {
-                    window.open(link.href, '_blank');
-                }
-            });
-        });
+            if (vp && apps.vaarplanner) vp.href = apps.vaarplanner;
+            if (wb && apps.werkenbij) wb.href = apps.werkenbij;
+        }).catch(() => {});
     </script>
 
     <!-- Service Worker Registration -->
