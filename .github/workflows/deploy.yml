@@ -10,21 +10,22 @@ jobs:
     steps:
       - name: Trigger Coolify Deploy
         run: |
-          RESPONSE=$(curl -s -w "\n%{http_code}" -X POST \
+          # Trigger deploy — Coolify verwerkt dit async, we hoeven niet te wachten
+          HTTP_CODE=$(curl -s -o /dev/null -w "%{http_code}" --max-time 30 \
+            -X POST \
             "http://187.124.176.167:8000/api/v1/deploy?uuid=${{ secrets.COOLIFY_APP_UUID }}&force=true" \
             -H "Authorization: Bearer ${{ secrets.COOLIFY_TOKEN }}" \
             -H "Content-Type: application/json")
 
-          HTTP_CODE=$(echo "$RESPONSE" | tail -1)
-          BODY=$(echo "$RESPONSE" | head -1)
+          echo "Coolify response: $HTTP_CODE"
 
-          echo "Status: $HTTP_CODE"
-          echo "Response: $BODY"
-
-          if [ "$HTTP_CODE" -lt 200 ] || [ "$HTTP_CODE" -ge 300 ]; then
-            echo "Deploy trigger failed, retrying..."
+          if [ "$HTTP_CODE" -ge 200 ] && [ "$HTTP_CODE" -lt 300 ]; then
+            echo "Deploy triggered successfully"
+          else
+            echo "Deploy trigger returned $HTTP_CODE, retrying..."
             sleep 5
-            curl -s -X POST \
+            curl -s -o /dev/null --max-time 30 \
+              -X POST \
               "http://187.124.176.167:8000/api/v1/deploy?uuid=${{ secrets.COOLIFY_APP_UUID }}&force=true" \
               -H "Authorization: Bearer ${{ secrets.COOLIFY_TOKEN }}" \
               -H "Content-Type: application/json"
