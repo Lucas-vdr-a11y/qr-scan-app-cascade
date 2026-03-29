@@ -574,7 +574,12 @@ function showReservationOverview(reservationId, data, showPhone = true) {
              </div>
         </div>`;
   } else {
-    statusBanner = '';
+    statusBanner = `
+      <div class="info-row">
+        <span class="info-label">Datum</span>
+        <span class="info-value" style="color: var(--status-ok); font-weight: 600;">${formattedDate}</span>
+      </div>
+    `;
   }
 
   body.innerHTML = `
