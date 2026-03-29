@@ -970,7 +970,7 @@ async function openSettleModal(reservationId, existingData = null) {
       const result = await response.json();
       if (result.status === 'ok') {
         playFeedback('success');
-        showSettlementSuccess(data, finance.open_amount, selectedMethod, result.sem_synced);
+        showSettlementSuccess(data, finance.open_amount);
       } else {
         throw new Error(result.message || 'Betaling mislukt');
       }
@@ -1000,18 +1000,18 @@ async function openSettleModal(reservationId, existingData = null) {
   }
 }
 
-function showSettlementSuccess(reservationData, amount, method, semSynced) {
+function showSettlementSuccess(reservationData, amount) {
   const modal = document.getElementById('scan-result-modal');
   const title = document.getElementById('result-title');
   const body = document.getElementById('result-body');
   const footer = document.getElementById('result-footer');
 
-  title.innerHTML = '<span style="color: var(--status-ok);">Betaling Geregistreerd</span>';
+  title.innerHTML = '<span style="color: var(--status-ok);">Afgerekend</span>';
 
   body.innerHTML = `
     <div class="result-info">
       <div class="warning-box" style="background: var(--status-ok-bg); border-color: var(--status-ok); color: var(--status-ok);">
-        <div style="font-size: 18px; font-weight: 800;">BETAALD</div>
+        <div style="font-size: 18px; font-weight: 800;">AFGEREKEND OP KASSA</div>
       </div>
       <div class="info-row">
         <span class="info-label">Bedrag</span>
@@ -1021,11 +1021,6 @@ function showSettlementSuccess(reservationData, amount, method, semSynced) {
         <span class="info-label">Reservering</span>
         <span class="info-value">${escapeHtml(reservationData.reservation_name || '')}</span>
       </div>
-      ${!semSynced ? `
-        <div class="warning-box" style="font-size: 12px;">
-          Betaling lokaal opgeslagen. SEM synchronisatie volgt automatisch.
-        </div>
-      ` : ''}
     </div>
   `;
 
