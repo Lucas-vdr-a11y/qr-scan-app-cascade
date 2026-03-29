@@ -150,7 +150,8 @@ app.use(helmet({
             styleSrc: ["'self'", "'unsafe-inline'", "https://fonts.googleapis.com"],
             fontSrc: ["'self'", "https://fonts.gstatic.com"],
             imgSrc: ["'self'", "data:", "blob:"],
-            connectSrc: ["'self'", "https://scan.varenbijcascade.com"],
+            connectSrc: ["'self'", "https://scan.varenbijcascade.com", "https://planner.varenbijcascade.com"],
+            frameSrc: ["'self'", "https://planner.varenbijcascade.com"],
             mediaSrc: ["'self'", "blob:"],
             workerSrc: ["'self'", "blob:"]
         }
