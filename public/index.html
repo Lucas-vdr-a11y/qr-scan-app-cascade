@@ -356,13 +356,20 @@
 
     <!-- Cascade cross-navigation via SSO -->
     <script>
-        // Directe links naar Cascade tools (SSO nog niet geconfigureerd op doel-apps)
-        fetch('/api/cascade-apps').then(r => r.json()).then(apps => {
+        (function() {
+            const token = localStorage.getItem('auth_token');
             const vp = document.getElementById('link-vaarplanner');
             const wb = document.getElementById('link-werkenbij');
-            if (vp && apps.vaarplanner) vp.href = apps.vaarplanner;
-            if (wb && apps.werkenbij) wb.href = apps.werkenbij;
-        }).catch(() => {});
+            if (token) {
+                if (vp) vp.href = '/api/auth/sso-redirect?target=vaarplanner&auth=' + encodeURIComponent(token);
+                if (wb) wb.href = '/api/auth/sso-redirect?target=werkenbij&auth=' + encodeURIComponent(token);
+            } else {
+                fetch('/api/cascade-apps').then(r => r.json()).then(apps => {
+                    if (vp && apps.vaarplanner) vp.href = apps.vaarplanner;
+                    if (wb && apps.werkenbij) wb.href = apps.werkenbij;
+                }).catch(() => {});
+            }
+        })();
     </script>
 
     <!-- Service Worker Registration -->
