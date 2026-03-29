@@ -147,7 +147,20 @@ function getFinanceInfo(reservation) {
             unit_price: p.PricePerUnitIn || 0,
             total_price: p.PriceIn || 0,
             type: p.OptionalType
-        }))
+        })),
+        discounts: (reservation.ReservationDiscounts || []).map(d => ({
+            name: d.DiscountName || d.Name || 'Korting',
+            amount: d.AmountIn || 0,
+            percentage: d.Percentage || null
+        })),
+        payments: (reservation.ReservationPayments || []).map(p => ({
+            amount: p.PaymentAmount || p.Amount || 0,
+            date: p.PaymentDate || null,
+            description: p.Description || null
+        })),
+        // Bruto subtotaal (voor kortingen)
+        subtotal: Math.round((reservation.ReservationProducts || []).reduce((sum, p) => sum + (p.PriceIn || 0), 0) * 100) / 100,
+        total_discount: Math.round((reservation.ReservationDiscounts || []).reduce((sum, d) => sum + (d.AmountIn || 0), 0) * 100) / 100
     };
 }
 

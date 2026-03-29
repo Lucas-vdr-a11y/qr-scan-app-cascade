@@ -894,13 +894,31 @@ async function openSettleModal(reservationId, existingData = null) {
 
   title.textContent = 'Afrekenen';
 
-  // Producten weergave
-  const products = finance.products || [];
-  const compulsoryProducts = products.filter(p => p.type !== 'OptionalUnselected' && (p.total_price || 0) > 0);
-  const productRows = compulsoryProducts.map(p => `
-    <div style="display: flex; justify-content: space-between; font-size: 13px; padding: 4px 0; border-bottom: 1px solid var(--border-subtle, #eee);">
-      <span>${escapeHtml(p.name)} ${p.quantity > 0 ? '(' + p.quantity + 'x)' : ''}</span>
-      <span style="font-weight: 600;">&euro;${(p.total_price || 0).toFixed(2)}</span>
+  // Producten, kortingen, betalingen
+  const products = (finance.products || []).filter(p => (p.total_price || 0) !== 0);
+  const discounts = finance.discounts || [];
+  const payments = finance.payments || [];
+  const subtotal = finance.subtotal || 0;
+  const totalDiscount = finance.total_discount || 0;
+
+  const productRows = products.map(p => `
+    <div style="display: flex; justify-content: space-between; font-size: 13px; padding: 5px 0; border-bottom: 1px solid var(--border-subtle, #eee);">
+      <span>${escapeHtml(p.name)}${p.quantity > 0 ? ' <span style="opacity:.6;">' + p.quantity + 'x</span>' : ''}</span>
+      <span style="font-weight: 600; white-space: nowrap; margin-left: 12px;">&euro;${(p.total_price || 0).toFixed(2)}</span>
+    </div>
+  `).join('');
+
+  const discountRows = discounts.filter(d => d.amount > 0).map(d => `
+    <div style="display: flex; justify-content: space-between; font-size: 13px; padding: 5px 0; color: var(--status-ok);">
+      <span>${escapeHtml(d.name)}${d.percentage ? ' (' + d.percentage + '%)' : ''}</span>
+      <span style="font-weight: 600; white-space: nowrap; margin-left: 12px;">- &euro;${d.amount.toFixed(2)}</span>
+    </div>
+  `).join('');
+
+  const paymentRows = payments.filter(p => p.amount > 0).map(p => `
+    <div style="display: flex; justify-content: space-between; font-size: 13px; padding: 5px 0; color: var(--status-ok);">
+      <span>${escapeHtml(p.description || 'Betaling')}${p.date ? ' <span style="opacity:.6;">' + p.date.split('T')[0] + '</span>' : ''}</span>
+      <span style="font-weight: 600; white-space: nowrap; margin-left: 12px;">- &euro;${p.amount.toFixed(2)}</span>
     </div>
   `).join('');
 
@@ -915,26 +933,44 @@ async function openSettleModal(reservationId, existingData = null) {
         <span class="info-value">${escapeHtml(data.contact_name || '-')}</span>
       </div>
 
-      ${compulsoryProducts.length > 0 ? `
       <div style="background: var(--surface-light, #f5f5f5); border-radius: 12px; padding: 12px; margin-top: 8px;">
-        <div style="font-weight: 700; margin-bottom: 8px; font-size: 14px;">Producten</div>
+
+        ${products.length > 0 ? `
+        <div style="font-weight: 700; margin-bottom: 6px; font-size: 13px; color: var(--text-secondary); text-transform: uppercase; letter-spacing: 0.5px;">Producten</div>
         ${productRows}
-        <div style="display: flex; justify-content: space-between; font-size: 14px; font-weight: 700; padding-top: 8px; margin-top: 4px; border-top: 2px solid var(--text-primary);">
+        ` : ''}
+
+        ${subtotal > 0 && (discountRows || paymentRows) ? `
+        <div style="display: flex; justify-content: space-between; font-size: 13px; font-weight: 600; padding-top: 6px; margin-top: 2px;">
+          <span>Subtotaal</span>
+          <span>&euro;${subtotal.toFixed(2)}</span>
+        </div>
+        ` : ''}
+
+        ${discountRows ? `
+        <div style="margin-top: 8px; padding-top: 8px; border-top: 1px dashed var(--border-subtle, #ddd);">
+          <div style="font-weight: 700; margin-bottom: 6px; font-size: 13px; color: var(--text-secondary); text-transform: uppercase; letter-spacing: 0.5px;">Kortingen</div>
+          ${discountRows}
+        </div>
+        ` : ''}
+
+        ${paymentRows ? `
+        <div style="margin-top: 8px; padding-top: 8px; border-top: 1px dashed var(--border-subtle, #ddd);">
+          <div style="font-weight: 700; margin-bottom: 6px; font-size: 13px; color: var(--text-secondary); text-transform: uppercase; letter-spacing: 0.5px;">Betalingen</div>
+          ${paymentRows}
+        </div>
+        ` : ''}
+
+        <div style="display: flex; justify-content: space-between; font-size: 14px; font-weight: 700; padding-top: 8px; margin-top: 8px; border-top: 2px solid var(--text-primary);">
           <span>Totaal</span>
           <span>&euro;${finance.total_price.toFixed(2)}</span>
         </div>
-        ${finance.total_paid > 0.01 ? `
-          <div style="display: flex; justify-content: space-between; font-size: 13px; padding-top: 4px; color: var(--status-ok);">
-            <span>Al betaald</span>
-            <span>- &euro;${finance.total_paid.toFixed(2)}</span>
-          </div>
-        ` : ''}
       </div>
-      ` : ''}
 
-      <div style="background: var(--status-deny-bg); border: 2px solid var(--status-deny); border-radius: 16px; padding: 20px; text-align: center; margin-top: 12px;">
+      <div style="background: var(--status-deny-bg); border: 2px solid var(--status-deny); border-radius: 16px; padding: 20px; text-align: center; margin-top: 12px; cursor: pointer;" onclick="openReservationDetail(${reservationId})">
         <div style="font-size: 12px; font-weight: 600; color: var(--text-secondary); margin-bottom: 2px;">INVOEREN OP TWELVE KASSA</div>
         <div style="font-size: 42px; font-weight: 800; color: var(--status-deny); letter-spacing: -1px;">&euro;${finance.open_amount.toFixed(2)}</div>
+        <div style="font-size: 11px; color: var(--text-secondary); margin-top: 4px;">Tik voor reserveringsdetails</div>
       </div>
     </div>
   `;
