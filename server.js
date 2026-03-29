@@ -31,7 +31,10 @@ function verifySSOToken(token) {
     const [data, signature] = token.split('.');
     if (!data || !signature) return null;
     const expected = crypto.createHmac('sha256', CASCADE_SSO_SECRET).update(data).digest('base64url');
-    if (signature !== expected) return null;
+    // Use timing-safe comparison to prevent timing attacks
+    const sigBuf = Buffer.from(signature);
+    const expBuf = Buffer.from(expected);
+    if (sigBuf.length !== expBuf.length || !crypto.timingSafeEqual(sigBuf, expBuf)) return null;
     try {
         const payload = JSON.parse(Buffer.from(data, 'base64url').toString());
         if (payload.exp < Date.now() / 1000) return null;
@@ -55,6 +58,17 @@ function createSSOToken(user, source, target) {
     const data = Buffer.from(JSON.stringify(payload)).toString('base64url');
     const sig = crypto.createHmac('sha256', CASCADE_SSO_SECRET).update(data).digest('base64url');
     return `${data}.${sig}`;
+}
+
+// HTML escape helper to prevent XSS in emails
+function escapeHtml(str) {
+    if (!str) return '';
+    return String(str)
+        .replace(/&/g, '&amp;')
+        .replace(/</g, '&lt;')
+        .replace(/>/g, '&gt;')
+        .replace(/"/g, '&quot;')
+        .replace(/'/g, '&#39;');
 }
 
 // Resend email client (lazy — werkt ook als RESEND_API_KEY niet is ingesteld)
@@ -81,7 +95,7 @@ async function sendInviteEmail(email, username, token) {
         subject: 'Welkom bij QR Scanner — Stel je wachtwoord in',
         html: `
             <div style="font-family: sans-serif; max-width: 480px; margin: 0 auto;">
-                <h2>Hoi ${username},</h2>
+                <h2>Hoi ${escapeHtml(username)},</h2>
                 <p>Je bent uitgenodigd om de QR Scanner app van Rederij Cascade te gebruiken.</p>
                 <p>Klik op de knop hieronder om je wachtwoord in te stellen:</p>
                 <p style="text-align: center; margin: 32px 0;">
@@ -107,7 +121,7 @@ async function sendResetEmail(email, username, token) {
         subject: 'Wachtwoord resetten — QR Scanner',
         html: `
             <div style="font-family: sans-serif; max-width: 480px; margin: 0 auto;">
-                <h2>Hoi ${username},</h2>
+                <h2>Hoi ${escapeHtml(username)},</h2>
                 <p>Er is een wachtwoord reset aangevraagd voor je account.</p>
                 <p>Klik op de knop hieronder om een nieuw wachtwoord in te stellen:</p>
                 <p style="text-align: center; margin: 32px 0;">
@@ -145,8 +159,8 @@ app.use(helmet({
     contentSecurityPolicy: {
         directives: {
             defaultSrc: ["'self'"],
-            scriptSrc: ["'self'", "'unsafe-inline'", "https://unpkg.com"],
-            scriptSrcAttr: ["'unsafe-inline'"],
+            scriptSrc: ["'self'", "https://unpkg.com"],
+            scriptSrcAttr: [],
             styleSrc: ["'self'", "'unsafe-inline'", "https://fonts.googleapis.com"],
             fontSrc: ["'self'", "https://fonts.gstatic.com"],
             imgSrc: ["'self'", "data:", "blob:"],
@@ -216,7 +230,7 @@ app.get('/api/auth/sso', (req, res) => {
 
     if (!user) {
         // Maak gebruiker aan met willekeurig wachtwoord (login gaat via SSO)
-        const hash = bcrypt.hashSync(crypto.randomBytes(32).toString('hex'), 10);
+        const hash = bcrypt.hashSync(crypto.randomBytes(32).toString('hex'), 12);
         // Map uniforme rol naar lokale QR Scanner rol
         const roleMap = { 'ADMIN': 'admin', 'BEHEERDER': 'admin', 'MEDEWERKER': 'medewerker' };
         const role = roleMap[payload.role] || 'medewerker';
@@ -232,8 +246,14 @@ app.get('/api/auth/sso', (req, res) => {
         { expiresIn: '12h' }
     );
 
-    // Redirect naar app met token in URL
-    res.redirect(`/?sso_login=${localToken}&sso_role=${user.role}&sso_username=${encodeURIComponent(user.username)}`);
+    // Set token as secure httpOnly cookie instead of URL parameter
+    res.cookie('auth_token', localToken, {
+        httpOnly: true,
+        secure: process.env.NODE_ENV === 'production',
+        sameSite: 'strict',
+        maxAge: 12 * 60 * 60 * 1000 // 12 hours
+    });
+    res.redirect(`/?sso_role=${user.role}&sso_username=${encodeURIComponent(user.username)}`);
 });
 
 // SSO redirect — genereer SSO token en redirect naar doel-app
@@ -318,12 +338,12 @@ app.post('/api/login', loginLimiter, async (req, res) => {
 
                 if (!localUser) {
                     // Maak lokale gebruiker aan met hetzelfde wachtwoord
-                    const hash = bcrypt.hashSync(password, 10);
+                    const hash = bcrypt.hashSync(password, 12);
                     statements.createUser(username, hash, role, centralData.email || null);
                     localUser = statements.getUser(username);
                 } else {
                     // Update lokale wachtwoord-hash en rol
-                    const hash = bcrypt.hashSync(password, 10);
+                    const hash = bcrypt.hashSync(password, 12);
                     statements.updateUserPassword(localUser.id, hash);
                     statements.updateUserRole(localUser.id, role);
                     if (centralData.email) {
@@ -374,8 +394,8 @@ app.post('/api/set-password', loginLimiter, (req, res) => {
     if (!token || !password) {
         return res.status(400).json({ error: 'Token en wachtwoord zijn verplicht' });
     }
-    if (typeof password !== 'string' || password.length < 8) {
-        return res.status(400).json({ error: 'Wachtwoord moet minimaal 8 tekens zijn' });
+    if (typeof password !== 'string' || password.length < 12) {
+        return res.status(400).json({ error: 'Wachtwoord moet minimaal 12 tekens zijn' });
     }
 
     const resetToken = statements.getPasswordResetToken(token);
@@ -383,7 +403,7 @@ app.post('/api/set-password', loginLimiter, (req, res) => {
         return res.status(400).json({ error: 'Ongeldige of verlopen link. Vraag een nieuwe aan bij de beheerder.' });
     }
 
-    const hash = bcrypt.hashSync(password, 10);
+    const hash = bcrypt.hashSync(password, 12);
     statements.updateUserPassword(resetToken.user_id, hash);
     statements.markTokenUsed(token);
     statements.invalidateTokensForUser(resetToken.user_id);
@@ -459,6 +479,14 @@ function getCurrentTimestamp() {
  */
 app.post('/api/scan', async (req, res) => {
     const { reservation_id, persons_entering, force_allow = false, device_id = 'unknown', tour_leg = null } = req.body;
+
+    // force_allow mag alleen door admins gebruikt worden
+    if (force_allow && req.user.role !== 'admin') {
+        return res.status(403).json({
+            status: 'error',
+            message: 'Alleen beheerders mogen scans forceren'
+        });
+    }
 
     // Strikte input validatie
     const parsedId = parseInt(reservation_id);
@@ -1285,7 +1313,7 @@ app.put('/api/users/:id', (req, res) => {
 
     // Update password if provided
     if (password && password.length >= 6) {
-        const hash = bcrypt.hashSync(password, 10);
+        const hash = bcrypt.hashSync(password, 12);
         statements.updateUserPassword(id, hash);
     } else if (password && password.length > 0) {
         return res.status(400).json({ error: 'Wachtwoord moet minimaal 6 tekens zijn' });
