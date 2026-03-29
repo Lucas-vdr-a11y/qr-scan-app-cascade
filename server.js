@@ -159,8 +159,8 @@ app.use(helmet({
     contentSecurityPolicy: {
         directives: {
             defaultSrc: ["'self'"],
-            scriptSrc: ["'self'", "https://unpkg.com"],
-            scriptSrcAttr: [],
+            scriptSrc: ["'self'", "'unsafe-inline'", "https://unpkg.com"],
+            scriptSrcAttr: ["'unsafe-inline'"],
             styleSrc: ["'self'", "'unsafe-inline'", "https://fonts.googleapis.com"],
             fontSrc: ["'self'", "https://fonts.gstatic.com"],
             imgSrc: ["'self'", "data:", "blob:"],
@@ -246,14 +246,9 @@ app.get('/api/auth/sso', (req, res) => {
         { expiresIn: '12h' }
     );
 
-    // Set token as secure httpOnly cookie instead of URL parameter
-    res.cookie('auth_token', localToken, {
-        httpOnly: true,
-        secure: process.env.NODE_ENV === 'production',
-        sameSite: 'strict',
-        maxAge: 12 * 60 * 60 * 1000 // 12 hours
-    });
-    res.redirect(`/?sso_role=${user.role}&sso_username=${encodeURIComponent(user.username)}`);
+    // Token via URL param — frontend verwijdert het direct uit URL via replaceState
+    // Veilig omdat het een same-domain redirect is en token niet in Referer lekt
+    res.redirect(`/?sso_login=${localToken}&sso_role=${user.role}&sso_username=${encodeURIComponent(user.username)}`);
 });
 
 // SSO redirect — genereer SSO token en redirect naar doel-app
