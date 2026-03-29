@@ -1210,3 +1210,39 @@ input {
         max-width: none;
     }
 }
+
+/* ==================== PAYMENT / SETTLE ==================== */
+.payment-banner {
+    animation: fadeIn 0.2s ease-out;
+}
+
+.payment-method-btn {
+    transition: all 0.15s ease;
+    border: 2px solid var(--border-subtle, #ddd) !important;
+}
+
+.payment-method-btn.active {
+    border-color: var(--brand-accent) !important;
+    background: rgba(180, 146, 83, 0.1) !important;
+    color: var(--brand-accent) !important;
+    font-weight: 700 !important;
+}
+
+.payment-badge-open {
+    background: var(--status-deny-bg);
+    color: var(--status-deny);
+    padding: 4px 10px;
+    border-radius: 999px;
+    font-size: 12px;
+    font-weight: 700;
+    white-space: nowrap;
+}
+
+.payment-badge-paid {
+    background: var(--status-ok-bg);
+    color: var(--status-ok);
+    padding: 4px 10px;
+    border-radius: 999px;
+    font-size: 12px;
+    font-weight: 700;
+}

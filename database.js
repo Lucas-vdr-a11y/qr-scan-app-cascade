@@ -71,6 +71,20 @@ async function initDatabase() {
       created_at TEXT NOT NULL,
       FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE
     );
+
+    CREATE TABLE IF NOT EXISTS payment_settlements (
+      id INTEGER PRIMARY KEY AUTOINCREMENT,
+      reservation_id INTEGER NOT NULL,
+      amount REAL NOT NULL,
+      payment_method TEXT NOT NULL DEFAULT 'pin',
+      settled_by TEXT NOT NULL,
+      settled_at TEXT NOT NULL,
+      sem_synced INTEGER DEFAULT 0,
+      notes TEXT
+    );
+
+    CREATE INDEX IF NOT EXISTS idx_payment_settlements_reservation
+      ON payment_settlements(reservation_id);
   `);
 
     // Seed default users if empty
@@ -307,6 +321,37 @@ const statements = {
 
     invalidateTokensForUser: (userId) => {
         run('UPDATE password_reset_tokens SET used = 1 WHERE user_id = ?', [userId]);
+    },
+
+    // Payment settlements
+    addPaymentSettlement: (reservationId, amount, paymentMethod, settledBy, settledAt) => {
+        run(
+            'INSERT INTO payment_settlements (reservation_id, amount, payment_method, settled_by, settled_at) VALUES (?, ?, ?, ?, ?)',
+            [reservationId, amount, paymentMethod, settledBy, settledAt]
+        );
+    },
+
+    getPaymentSettlementsByReservation: (reservationId) => {
+        return query(
+            'SELECT * FROM payment_settlements WHERE reservation_id = ? ORDER BY settled_at DESC',
+            [reservationId]
+        );
+    },
+
+    getUnsyncedSettlements: () => {
+        return query('SELECT * FROM payment_settlements WHERE sem_synced = 0');
+    },
+
+    markSettlementSynced: (id) => {
+        run('UPDATE payment_settlements SET sem_synced = 1 WHERE id = ?', [id]);
+    },
+
+    markSettlementSyncFailed: (id, error) => {
+        run('UPDATE payment_settlements SET notes = ? WHERE id = ?', [error, id]);
+    },
+
+    getRecentSettlements: () => {
+        return query('SELECT * FROM payment_settlements ORDER BY settled_at DESC LIMIT 100');
     }
 };
 

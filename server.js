@@ -322,7 +322,7 @@ app.post('/api/scan', async (req, res) => {
         if (!force_allow) {
             const validation = semApi.validateReservation(reservation, currentDate);
             if (!validation.valid) {
-                return res.json({
+                const deniedResponse = {
                     status: 'denied',
                     reason: validation.reason,
                     reservation_name: reservation.Name,
@@ -336,7 +336,13 @@ app.post('/api/scan', async (req, res) => {
                         name: p.ProductName || p.Name || 'Product',
                         quantity: p.NumberOf ?? p.Quantity ?? p.Amount ?? 0
                     })) || []).sort((a, b) => a.name.localeCompare(b.name))
-                });
+                };
+                // Bij NOT_PAID: voeg finance data toe zodat de frontend het bedrag kan tonen
+                if (validation.reason === 'NOT_PAID') {
+                    deniedResponse.finance = semApi.getFinanceInfo(reservation);
+                    deniedResponse.open_amount = validation.openAmount || deniedResponse.finance.open_amount;
+                }
+                return res.json(deniedResponse);
             }
         }
 
@@ -521,6 +527,62 @@ app.post('/api/scan', async (req, res) => {
 });
 
 /**
+ * POST /api/settle
+ * Afrekenen: registreer een betaling voor een reservering
+ */
+app.post('/api/settle', async (req, res) => {
+    const { reservation_id, amount, payment_method = 'pin', notes = '' } = req.body;
+
+    const parsedId = parseInt(reservation_id);
+    const parsedAmount = parseFloat(amount);
+
+    if (!Number.isInteger(parsedId) || parsedId <= 0) {
+        return res.status(400).json({ status: 'error', message: 'Ongeldig reserveringsnummer' });
+    }
+    if (isNaN(parsedAmount) || parsedAmount <= 0 || parsedAmount > 100000) {
+        return res.status(400).json({ status: 'error', message: 'Ongeldig bedrag' });
+    }
+    if (!['cash', 'pin'].includes(payment_method)) {
+        return res.status(400).json({ status: 'error', message: 'Ongeldige betaalmethode' });
+    }
+
+    try {
+        // 1. Lokaal opslaan
+        const settledAt = getCurrentTimestamp();
+        statements.addPaymentSettlement(parsedId, parsedAmount, payment_method, req.user.username, settledAt);
+
+        // 2. Sync naar SEM API
+        let semSynced = false;
+        try {
+            await semApi.addReservationPayment(parsedId, parsedAmount);
+            // Markeer als gesynct (laatste settlement voor deze reservering)
+            const settlements = statements.getPaymentSettlementsByReservation(parsedId);
+            if (settlements.length > 0) {
+                statements.markSettlementSynced(settlements[0].id);
+            }
+            semSynced = true;
+        } catch (semError) {
+            console.error('SEM payment sync failed:', semError.message);
+        }
+
+        // 3. Re-fetch voor bijgewerkte finance data
+        const reservation = await semApi.getReservation(parsedId);
+        const financeInfo = semApi.getFinanceInfo(reservation);
+
+        res.json({
+            status: 'ok',
+            message: 'Betaling geregistreerd',
+            sem_synced: semSynced,
+            finance: financeInfo
+        });
+
+    } catch (error) {
+        console.error('Settle error:', error);
+        res.status(500).json({ status: 'error', message: 'Fout bij verwerken betaling' });
+    }
+});
+
+/**
  * GET /api/reservations
  * Haal alle reserveringen op voor een datum (met scan status)
  */
@@ -564,7 +626,7 @@ app.get('/api/reservations', async (req, res) => {
         const result = filteredReservations.map(r => {
             const scanStatus = statusMap[r.ReservationID];
             const totalPersons = semApi.getNumberOfPersons(r);
-
+            const finance = semApi.getFinanceInfo(r);
 
             return {
                 reservation_id: r.ReservationID,
@@ -594,7 +656,10 @@ app.get('/api/reservations', async (req, res) => {
                     name: p.ProductName || p.Name || 'Product',
                     quantity: p.NumberOf ?? p.Quantity ?? p.Amount ?? 0,
                     notes: p.Notes || ''
-                })) || []).sort((a, b) => a.name.localeCompare(b.name))
+                })) || []).sort((a, b) => a.name.localeCompare(b.name)),
+                open_amount: finance.open_amount,
+                is_paid: finance.is_paid,
+                total_price: finance.total_price
             };
         });
 
@@ -842,6 +907,7 @@ app.get('/api/reservation/:reservation_id', async (req, res) => {
             contact_name: reservation.ContactPerson?.DisplayName || '',
             contact_phone: reservation.ContactPerson?.PhoneNumber || '',
             child_counts: semApi.getChildCounts(reservation),
+            finance: semApi.getFinanceInfo(reservation),
             products: (reservation.ReservationProducts?.filter(p =>
                 p.OptionalType === 'OptionalUnselected'
             ).map(p => ({
@@ -1159,6 +1225,26 @@ app.post('/api/floorplan-token', async (req, res) => {
         });
     }
 });
+
+// ------------------------------------------------------------------
+// SEM PAYMENT SYNC RETRY (elke 5 minuten)
+// ------------------------------------------------------------------
+setInterval(async () => {
+    try {
+        const unsynced = statements.getUnsyncedSettlements();
+        for (const s of unsynced) {
+            try {
+                await semApi.addReservationPayment(s.reservation_id, s.amount);
+                statements.markSettlementSynced(s.id);
+                console.log(`SEM sync OK: settlement #${s.id} (reservation ${s.reservation_id})`);
+            } catch (err) {
+                statements.markSettlementSyncFailed(s.id, err.message);
+            }
+        }
+    } catch (err) {
+        console.error('SEM sync retry error:', err.message);
+    }
+}, 5 * 60 * 1000);
 
 // Serve frontend
 app.get('*', (req, res) => {

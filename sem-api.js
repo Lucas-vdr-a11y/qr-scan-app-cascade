@@ -76,6 +76,66 @@ async function getReservation(reservationId) {
 }
 
 /**
+ * Registreer een betaling bij SEM
+ */
+async function addReservationPayment(reservationId, paymentAmount) {
+    try {
+        const response = await semClient.post('/api/Reservations/AddReservationPayments', {
+            ReservationID: parseInt(reservationId),
+            ReservationPayments: [{
+                ReservationID: parseInt(reservationId),
+                PaymentAmount: parseFloat(paymentAmount),
+                PaymentRegisterID: parseInt(process.env.SEM_PAYMENT_REGISTER_ID || '1')
+            }]
+        });
+        return response.data;
+    } catch (error) {
+        console.error(`Error adding payment for reservation ${reservationId}:`, error.message);
+        throw new Error('Failed to add payment via SEM API');
+    }
+}
+
+/**
+ * Haal financiele informatie op uit een reservering
+ */
+function getFinanceInfo(reservation) {
+    const openAmount = (reservation.OpenAmount !== null && reservation.OpenAmount !== undefined)
+        ? parseFloat(reservation.OpenAmount) : null;
+
+    let totalPrice = reservation.TotalPriceIn || 0;
+    if (totalPrice === 0 && reservation.ReservationProducts) {
+        totalPrice = reservation.ReservationProducts.reduce((sum, p) => sum + (p.PriceIn || 0), 0);
+    }
+
+    if (reservation.ReservationDiscounts && Array.isArray(reservation.ReservationDiscounts)) {
+        const totalDiscount = reservation.ReservationDiscounts.reduce((sum, d) => sum + (d.AmountIn || 0), 0);
+        totalPrice -= totalDiscount;
+    }
+
+    let totalPaid = 0;
+    if (reservation.ReservationPayments) {
+        totalPaid = reservation.ReservationPayments.reduce((sum, p) => sum + (p.PaymentAmount || p.Amount || 0), 0);
+    }
+
+    const calculatedOpen = openAmount !== null ? openAmount : Math.max(0, totalPrice - totalPaid);
+    const isPaid = calculatedOpen <= 0.01;
+
+    return {
+        total_price: Math.round(totalPrice * 100) / 100,
+        total_paid: Math.round(totalPaid * 100) / 100,
+        open_amount: Math.round(calculatedOpen * 100) / 100,
+        is_paid: isPaid,
+        products: (reservation.ReservationProducts || []).map(p => ({
+            name: p.ProductName || p.Name || 'Product',
+            quantity: p.NumberOf ?? 0,
+            unit_price: p.PricePerUnitIn || 0,
+            total_price: p.PriceIn || 0,
+            type: p.OptionalType
+        }))
+    };
+}
+
+/**
  * Valideer of een reservering geldig is voor scanning
  */
 function validateReservation(reservation, currentDate) {
@@ -94,7 +154,7 @@ function validateReservation(reservation, currentDate) {
 
     if (openAmount !== null) {
         if (openAmount > 0.01) {
-            return { valid: false, reason: 'NOT_PAID' };
+            return { valid: false, reason: 'NOT_PAID', openAmount: openAmount };
         }
     } else {
         // Fallback: bereken op basis van producten als OpenAmount null is
@@ -119,7 +179,7 @@ function validateReservation(reservation, currentDate) {
         }
 
         if (totalPrice > 0.01 && totalPaid < (totalPrice - 0.01)) {
-            return { valid: false, reason: 'NOT_PAID' };
+            return { valid: false, reason: 'NOT_PAID', openAmount: totalPrice - totalPaid };
         }
     }
 
@@ -176,6 +236,8 @@ function isTourDeThorn(reservation) {
 module.exports = {
     getReservations,
     getReservation,
+    addReservationPayment,
+    getFinanceInfo,
     validateReservation,
     getFacilityIds,
     getNumberOfPersons,
