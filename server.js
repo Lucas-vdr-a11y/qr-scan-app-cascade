@@ -542,7 +542,7 @@ app.post('/api/settle', async (req, res) => {
     if (isNaN(parsedAmount) || parsedAmount <= 0 || parsedAmount > 100000) {
         return res.status(400).json({ status: 'error', message: 'Ongeldig bedrag' });
     }
-    if (!['cash', 'pin'].includes(payment_method)) {
+    if (!['cash', 'pin', 'kassa'].includes(payment_method)) {
         return res.status(400).json({ status: 'error', message: 'Ongeldige betaalmethode' });
     }
 

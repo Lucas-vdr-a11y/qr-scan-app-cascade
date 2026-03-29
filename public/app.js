@@ -910,41 +910,24 @@ async function openSettleModal(reservationId, existingData = null) {
       ` : ''}
 
       <div style="background: var(--status-deny-bg); border: 2px solid var(--status-deny); border-radius: 16px; padding: 20px; text-align: center; margin-top: 12px;">
-        <div style="font-size: 14px; font-weight: 600; color: var(--status-deny); margin-bottom: 4px;">TE BETALEN</div>
-        <div style="font-size: 36px; font-weight: 800; color: var(--status-deny);">&euro;${finance.open_amount.toFixed(2)}</div>
-      </div>
-
-      <div style="margin-top: 16px;">
-        <label style="font-weight: 600; font-size: 14px; display: block; margin-bottom: 8px;">Betaalmethode</label>
-        <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 8px;">
-          <button class="btn btn-secondary payment-method-btn active" data-method="pin" style="padding: 10px;">PIN</button>
-          <button class="btn btn-secondary payment-method-btn" data-method="cash" style="padding: 10px;">Contant</button>
-        </div>
+        <div style="font-size: 12px; font-weight: 600; color: var(--text-secondary); margin-bottom: 2px;">INVOEREN OP TWELVE KASSA</div>
+        <div style="font-size: 42px; font-weight: 800; color: var(--status-deny); letter-spacing: -1px;">&euro;${finance.open_amount.toFixed(2)}</div>
       </div>
     </div>
   `;
 
   footer.innerHTML = `
     <button class="btn btn-primary" id="confirm-settle-btn" style="width: 100%; font-size: 18px; padding: 16px;">
-      Bevestig Betaling &euro;${finance.open_amount.toFixed(2)}
+      Afgerekend op kassa
     </button>
     <button class="btn btn-secondary" id="cancel-settle-btn" style="width: 100%; margin-top: 8px;">
       Annuleer
     </button>
   `;
 
-  // Payment method toggle
-  body.querySelectorAll('.payment-method-btn').forEach(btn => {
-    btn.addEventListener('click', () => {
-      body.querySelectorAll('.payment-method-btn').forEach(b => b.classList.remove('active'));
-      btn.classList.add('active');
-    });
-  });
-
   // Bevestig betaling
   document.getElementById('confirm-settle-btn').addEventListener('click', async () => {
-    const methodBtn = body.querySelector('.payment-method-btn.active');
-    const selectedMethod = methodBtn?.dataset.method || 'pin';
+    const selectedMethod = 'kassa';
 
     const confirmBtn = document.getElementById('confirm-settle-btn');
     confirmBtn.disabled = true;
@@ -1004,10 +987,6 @@ function showSettlementSuccess(reservationData, amount, method, semSynced) {
       <div class="info-row">
         <span class="info-label">Bedrag</span>
         <span class="info-value" style="font-size: 20px; font-weight: 800;">&euro;${amount.toFixed(2)}</span>
-      </div>
-      <div class="info-row">
-        <span class="info-label">Methode</span>
-        <span class="info-value">${method === 'pin' ? 'PIN' : 'Contant'}</span>
       </div>
       <div class="info-row">
         <span class="info-label">Reservering</span>
