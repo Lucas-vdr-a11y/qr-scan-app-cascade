@@ -209,7 +209,9 @@ app.get('/api/auth/sso', (req, res) => {
     if (!user) {
         // Maak gebruiker aan met willekeurig wachtwoord (login gaat via SSO)
         const hash = bcrypt.hashSync(crypto.randomBytes(32).toString('hex'), 10);
-        const role = payload.role === 'ADMIN' ? 'admin' : 'medewerker';
+        // Map uniforme rol naar lokale QR Scanner rol
+        const roleMap = { 'ADMIN': 'admin', 'BEHEERDER': 'admin', 'MEDEWERKER': 'medewerker' };
+        const role = roleMap[payload.role] || 'medewerker';
         const username = payload.email.split('@')[0];
         statements.createUser(username, hash, role, payload.email);
         user = statements.getUserByEmail(payload.email);
@@ -303,7 +305,8 @@ app.post('/api/login', loginLimiter, async (req, res) => {
 
                 // Cache gebruiker lokaal (maak aan of update)
                 let localUser = statements.getUser(username);
-                const role = centralData.role === 'ADMIN' ? 'admin' : 'medewerker';
+                const centralRoleMap = { 'ADMIN': 'admin', 'BEHEERDER': 'admin', 'MEDEWERKER': 'medewerker' };
+                const role = centralRoleMap[centralData.role] || 'medewerker';
 
                 if (!localUser) {
                     // Maak lokale gebruiker aan met hetzelfde wachtwoord
