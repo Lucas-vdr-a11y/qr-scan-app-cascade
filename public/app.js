@@ -91,18 +91,13 @@ function checkAuth() {
   }
   const role = localStorage.getItem('user_role');
   const historyBtn = document.querySelector('[data-screen="history"]');
-  // Hide history for non-admins (CSS might be better but JS works)
   if (historyBtn) {
-    historyBtn.style.display = (role === 'admin') ? 'flex' : 'none';
-    // Hide from nav
-    historyBtn.style.visibility = (role === 'admin') ? 'visible' : 'hidden';
-    if (role !== 'admin') historyBtn.style.width = '0'; // Collapse space
+    historyBtn.classList.toggle('hidden', role !== 'admin');
   }
 
-  // Show Users button for admin
   const usersBtn = document.getElementById('nav-users');
   if (usersBtn) {
-    usersBtn.style.display = (role === 'admin') ? 'flex' : 'none';
+    usersBtn.classList.toggle('hidden', role !== 'admin');
   }
 
   return true;
@@ -343,6 +338,7 @@ function switchScreen(screenName) {
   document.getElementById(`${screenName}-screen`).classList.add('active');
 
   currentScreen = screenName;
+  window.scrollTo(0, 0);
 
   // Load data for screen
   if (screenName === 'reservations') {
@@ -648,7 +644,27 @@ function showReservationOverview(reservationId, data, showPhone = true) {
           ${data.validation_warnings.map(w => `<div>• ${w}</div>`).join('')}
         </div>
       ` : ''}
-      
+
+      ${data.finance && data.finance.open_amount > 0.01 ? `
+        <div class="payment-banner" style="background: var(--status-deny-bg); border: 2px solid var(--status-deny); border-radius: 16px; padding: 16px; margin-top: 12px;">
+          <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 8px;">
+            <span style="font-weight: 700; color: var(--status-deny); font-size: 14px;">OPENSTAAND BEDRAG</span>
+            <span style="font-size: 24px; font-weight: 800; color: var(--status-deny);">&euro;${data.finance.open_amount.toFixed(2)}</span>
+          </div>
+          <div style="font-size: 13px; color: var(--text-secondary); margin-bottom: 12px;">
+            Totaal: &euro;${data.finance.total_price.toFixed(2)} | Betaald: &euro;${data.finance.total_paid.toFixed(2)}
+          </div>
+          <button class="btn btn-warning" id="settle-from-detail-btn" style="width: 100%;">
+            Afrekenen (&euro;${data.finance.open_amount.toFixed(2)})
+          </button>
+        </div>
+      ` : (data.finance && data.finance.is_paid && data.finance.total_price > 0 ? `
+        <div style="background: var(--status-ok-bg); border: 1px solid var(--status-ok); border-radius: 12px; padding: 10px 16px; margin-top: 12px; display: flex; align-items: center; justify-content: space-between;">
+          <span style="color: var(--status-ok); font-weight: 700; font-size: 14px;">Betaald</span>
+          <span style="color: var(--text-secondary); font-size: 13px;">&euro;${data.finance.total_price.toFixed(2)}</span>
+        </div>
+      ` : '')}
+
       ${data.internal_notes && data.internal_notes.trim() ? `
         <details class="notes-collapsible" style="margin-top: 12px; background: var(--surface-light); border-radius: 8px; padding: 8px;">
           <summary style="cursor: pointer; font-weight: 600; color: var(--text-primary); display: flex; align-items: center; gap: 8px; user-select: none;">
@@ -666,15 +682,15 @@ function showReservationOverview(reservationId, data, showPhone = true) {
     <div class="persons-input-group">
       <label for="persons-entering">Aantal personen nu:</label>
       <div style="display: flex; align-items: center; gap: 12px;">
-          <button class="btn btn-secondary" onclick="document.getElementById('persons-entering').stepDown()" style="width: 40px; padding: 0;">-</button>
-          <input 
-            type="number" 
-            id="persons-entering" 
-            min="1" 
-            max="${remainingPersons}" 
+          <button class="btn btn-secondary btn-counter" onclick="document.getElementById('persons-entering').stepDown()">-</button>
+          <input
+            type="number"
+            id="persons-entering"
+            min="1"
+            max="${remainingPersons}"
             value="${remainingPersons}"
           >
-          <button class="btn btn-secondary" onclick="document.getElementById('persons-entering').stepUp()" style="width: 40px; padding: 0;">+</button>
+          <button class="btn btn-secondary btn-counter" onclick="document.getElementById('persons-entering').stepUp()">+</button>
       </div>
     </div>
     ` : ''}
@@ -695,7 +711,7 @@ function showReservationOverview(reservationId, data, showPhone = true) {
             🏠 Terugreis Scannen
           </button>
         </div>
-        <button class="btn btn-secondary" id="cancel-scan-btn" style="width: 100%;">
+        <button class="btn btn-secondary" id="cancel-scan-btn">
           Annuleer
         </button>
       `;
@@ -715,10 +731,10 @@ function showReservationOverview(reservationId, data, showPhone = true) {
     });
   } else if (remainingPersons > 0 && isToday) {
     footer.innerHTML = `
-        <button class="btn btn-primary" id="confirm-scan-btn" style="width: 100%;">
+        <button class="btn btn-primary" id="confirm-scan-btn">
           Start Scan
         </button>
-        <button class="btn btn-secondary" id="cancel-scan-btn" style="width: 100%; margin-top: 8px;">
+        <button class="btn btn-secondary" id="cancel-scan-btn" style="margin-top: 8px;">
           Annuleer
         </button>
       `;
@@ -734,10 +750,10 @@ function showReservationOverview(reservationId, data, showPhone = true) {
   } else if (!isToday || remainingPersons <= 0) {
     // Show override option for wrong date or already scanned (including overcapacity)
     footer.innerHTML = `
-        <button class="btn btn-warning" id="force-scan-btn" style="width: 100%;">
+        <button class="btn btn-warning" id="force-scan-btn">
           ⚠️ Toch Toelaten (Override)
         </button>
-        <button class="btn btn-secondary" id="cancel-scan-btn" style="width: 100%; margin-top: 8px;">
+        <button class="btn btn-secondary" id="cancel-scan-btn" style="margin-top: 8px;">
           Annuleer
         </button>
       `;
@@ -749,6 +765,14 @@ function showReservationOverview(reservationId, data, showPhone = true) {
 
     document.getElementById('cancel-scan-btn').addEventListener('click', () => {
       modal.classList.remove('active');
+    });
+  }
+
+  // Settle knop event listener (indien aanwezig in de body)
+  const settleBtn = document.getElementById('settle-from-detail-btn');
+  if (settleBtn) {
+    settleBtn.addEventListener('click', () => {
+      openSettleModal(reservationId, data);
     });
   }
 
@@ -778,25 +802,25 @@ function showOverrideScanInput(reservationId, totalPersons) {
     inputGroup.innerHTML = `
           <label for="persons-entering">Aantal te scannen:</label>
           <div style="display: flex; align-items: center; gap: 12px;">
-              <button class="btn btn-secondary" onclick="document.getElementById('persons-entering').stepDown()" style="width: 40px; padding: 0;">-</button>
-              <input 
-                type="number" 
-                id="persons-entering" 
-                min="1" 
-                max="${totalPersons}" 
+              <button class="btn btn-secondary btn-counter" onclick="document.getElementById('persons-entering').stepDown()">-</button>
+              <input
+                type="number"
+                id="persons-entering"
+                min="1"
+                max="${totalPersons}"
                 value="1"
               >
-              <button class="btn btn-secondary" onclick="document.getElementById('persons-entering').stepUp()" style="width: 40px; padding: 0;">+</button>
+              <button class="btn btn-secondary btn-counter" onclick="document.getElementById('persons-entering').stepUp()">+</button>
           </div>
         `;
     body.appendChild(inputGroup);
   }
 
   footer.innerHTML = `
-    <button class="btn btn-warning" id="confirm-override-btn" style="width: 100%;">
+    <button class="btn btn-warning" id="confirm-override-btn">
       ✓ Bevestig Override
     </button>
-    <button class="btn btn-secondary" id="cancel-override-btn" style="width: 100%; margin-top: 8px;">
+    <button class="btn btn-secondary" id="cancel-override-btn" style="margin-top: 8px;">
       Annuleer
     </button>
   `;
@@ -810,6 +834,206 @@ function showOverrideScanInput(reservationId, totalPersons) {
     modal.classList.remove('active');
   });
 }
+
+// ==================== AFREKENEN / SETTLE ====================
+
+async function openSettleModal(reservationId, existingData = null) {
+  const modal = document.getElementById('scan-result-modal');
+  const title = document.getElementById('result-title');
+  const body = document.getElementById('result-body');
+  const footer = document.getElementById('result-footer');
+
+  // Toon loading
+  title.textContent = 'Afrekenen';
+  body.innerHTML = '<div class="loading">Laden...</div>';
+  footer.innerHTML = '';
+  modal.classList.add('active');
+
+  // Haal data op als die niet is doorgegeven
+  let data = existingData;
+  if (!data || !data.finance) {
+    try {
+      const response = await authFetch(`${API_BASE}/api/reservation/${reservationId}`);
+      if (!response.ok) throw new Error('Kan reservering niet ophalen');
+      data = await response.json();
+    } catch (error) {
+      body.innerHTML = `<div class="warning-box">${escapeHtml(error.message)}</div>`;
+      footer.innerHTML = '<button class="btn btn-secondary" onclick="document.getElementById(\'scan-result-modal\').classList.remove(\'active\')">Sluiten</button>';
+      return;
+    }
+  }
+
+  const finance = data.finance;
+  if (!finance || finance.open_amount <= 0.01) {
+    body.innerHTML = '<div class="warning-box" style="background: var(--status-ok-bg); border-color: var(--status-ok); color: var(--status-ok);">Reservering is al betaald</div>';
+    footer.innerHTML = '<button class="btn btn-secondary" onclick="document.getElementById(\'scan-result-modal\').classList.remove(\'active\')">Sluiten</button>';
+    return;
+  }
+
+  title.textContent = 'Afrekenen';
+
+  // Producten weergave
+  const compulsoryProducts = finance.products.filter(p => p.type !== 'OptionalUnselected' && p.total_price > 0);
+  const productRows = compulsoryProducts.map(p => `
+    <div style="display: flex; justify-content: space-between; font-size: 13px; padding: 4px 0; border-bottom: 1px solid var(--border-subtle, #eee);">
+      <span>${escapeHtml(p.name)} ${p.quantity > 0 ? '(' + p.quantity + 'x)' : ''}</span>
+      <span style="font-weight: 600;">&euro;${p.total_price.toFixed(2)}</span>
+    </div>
+  `).join('');
+
+  body.innerHTML = `
+    <div class="result-info">
+      <div class="info-row">
+        <span class="info-label">Reservering</span>
+        <span class="info-value">${escapeHtml(data.reservation_name || '#' + reservationId)}</span>
+      </div>
+      <div class="info-row">
+        <span class="info-label">Contactpersoon</span>
+        <span class="info-value">${escapeHtml(data.contact_name || '-')}</span>
+      </div>
+
+      ${compulsoryProducts.length > 0 ? `
+      <div style="background: var(--surface-light, #f5f5f5); border-radius: 12px; padding: 12px; margin-top: 8px;">
+        <div style="font-weight: 700; margin-bottom: 8px; font-size: 14px;">Producten</div>
+        ${productRows}
+        <div style="display: flex; justify-content: space-between; font-size: 14px; font-weight: 700; padding-top: 8px; margin-top: 4px; border-top: 2px solid var(--text-primary);">
+          <span>Totaal</span>
+          <span>&euro;${finance.total_price.toFixed(2)}</span>
+        </div>
+        ${finance.total_paid > 0.01 ? `
+          <div style="display: flex; justify-content: space-between; font-size: 13px; padding-top: 4px; color: var(--status-ok);">
+            <span>Al betaald</span>
+            <span>- &euro;${finance.total_paid.toFixed(2)}</span>
+          </div>
+        ` : ''}
+      </div>
+      ` : ''}
+
+      <div style="background: var(--status-deny-bg); border: 2px solid var(--status-deny); border-radius: 16px; padding: 20px; text-align: center; margin-top: 12px;">
+        <div style="font-size: 14px; font-weight: 600; color: var(--status-deny); margin-bottom: 4px;">TE BETALEN</div>
+        <div style="font-size: 36px; font-weight: 800; color: var(--status-deny);">&euro;${finance.open_amount.toFixed(2)}</div>
+      </div>
+
+      <div style="margin-top: 16px;">
+        <label style="font-weight: 600; font-size: 14px; display: block; margin-bottom: 8px;">Betaalmethode</label>
+        <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 8px;">
+          <button class="btn btn-secondary payment-method-btn active" data-method="pin" style="padding: 10px;">PIN</button>
+          <button class="btn btn-secondary payment-method-btn" data-method="cash" style="padding: 10px;">Contant</button>
+        </div>
+      </div>
+    </div>
+  `;
+
+  footer.innerHTML = `
+    <button class="btn btn-primary" id="confirm-settle-btn" style="width: 100%; font-size: 18px; padding: 16px;">
+      Bevestig Betaling &euro;${finance.open_amount.toFixed(2)}
+    </button>
+    <button class="btn btn-secondary" id="cancel-settle-btn" style="width: 100%; margin-top: 8px;">
+      Annuleer
+    </button>
+  `;
+
+  // Payment method toggle
+  body.querySelectorAll('.payment-method-btn').forEach(btn => {
+    btn.addEventListener('click', () => {
+      body.querySelectorAll('.payment-method-btn').forEach(b => b.classList.remove('active'));
+      btn.classList.add('active');
+    });
+  });
+
+  // Bevestig betaling
+  document.getElementById('confirm-settle-btn').addEventListener('click', async () => {
+    const methodBtn = body.querySelector('.payment-method-btn.active');
+    const selectedMethod = methodBtn?.dataset.method || 'pin';
+
+    const confirmBtn = document.getElementById('confirm-settle-btn');
+    confirmBtn.disabled = true;
+    confirmBtn.textContent = 'Verwerken...';
+
+    try {
+      const response = await authFetch(`${API_BASE}/api/settle`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          reservation_id: reservationId,
+          amount: finance.open_amount,
+          payment_method: selectedMethod
+        })
+      });
+
+      const result = await response.json();
+      if (result.status === 'ok') {
+        playFeedback('success');
+        showSettlementSuccess(data, finance.open_amount, selectedMethod, result.sem_synced);
+      } else {
+        throw new Error(result.message || 'Betaling mislukt');
+      }
+    } catch (error) {
+      confirmBtn.disabled = false;
+      confirmBtn.textContent = `Bevestig Betaling \u20AC${finance.open_amount.toFixed(2)}`;
+      // Toon error in modal
+      const existingError = body.querySelector('.settle-error');
+      if (existingError) existingError.remove();
+      const errorDiv = document.createElement('div');
+      errorDiv.className = 'warning-box settle-error';
+      errorDiv.style.marginTop = '12px';
+      errorDiv.textContent = error.message;
+      body.querySelector('.result-info').appendChild(errorDiv);
+    }
+  });
+
+  // Annuleer
+  document.getElementById('cancel-settle-btn').addEventListener('click', () => {
+    modal.classList.remove('active');
+  });
+}
+
+function showSettlementSuccess(reservationData, amount, method, semSynced) {
+  const modal = document.getElementById('scan-result-modal');
+  const title = document.getElementById('result-title');
+  const body = document.getElementById('result-body');
+  const footer = document.getElementById('result-footer');
+
+  title.innerHTML = '<span style="color: var(--status-ok);">Betaling Geregistreerd</span>';
+
+  body.innerHTML = `
+    <div class="result-info">
+      <div class="warning-box" style="background: var(--status-ok-bg); border-color: var(--status-ok); color: var(--status-ok);">
+        <div style="font-size: 18px; font-weight: 800;">BETAALD</div>
+      </div>
+      <div class="info-row">
+        <span class="info-label">Bedrag</span>
+        <span class="info-value" style="font-size: 20px; font-weight: 800;">&euro;${amount.toFixed(2)}</span>
+      </div>
+      <div class="info-row">
+        <span class="info-label">Methode</span>
+        <span class="info-value">${method === 'pin' ? 'PIN' : 'Contant'}</span>
+      </div>
+      <div class="info-row">
+        <span class="info-label">Reservering</span>
+        <span class="info-value">${escapeHtml(reservationData.reservation_name || '')}</span>
+      </div>
+      ${!semSynced ? `
+        <div class="warning-box" style="font-size: 12px;">
+          Betaling lokaal opgeslagen. SEM synchronisatie volgt automatisch.
+        </div>
+      ` : ''}
+    </div>
+  `;
+
+  footer.innerHTML = `
+    <button class="btn btn-primary" id="close-settle-success-btn" style="width: 100%;">OK</button>
+  `;
+
+  document.getElementById('close-settle-success-btn').addEventListener('click', () => {
+    modal.classList.remove('active');
+    if (currentScreen === 'reservations') loadReservations();
+  });
+
+  modal.classList.add('active');
+}
+
+// ==================== SCAN SUBMISSION ====================
 
 async function submitScan(reservationId, personsEntering, forceAllow = false, tourLeg = null) {
   try {
@@ -1018,32 +1242,66 @@ function showDeniedModal(result, reservationId, personsEntering) {
 
         ${formatProductsInfo(result.products)}
 
-      
+      ${result.reason === 'NOT_PAID' && result.open_amount ? `
+      <div style="background: var(--status-deny-bg); border: 2px solid var(--status-deny); border-radius: 16px; padding: 20px; text-align: center; margin-top: 12px;">
+        <div style="font-size: 14px; font-weight: 600; color: var(--status-deny); margin-bottom: 4px;">TE BETALEN</div>
+        <div style="font-size: 36px; font-weight: 800; color: var(--status-deny);">&euro;${parseFloat(result.open_amount).toFixed(2)}</div>
+      </div>
+      ` : `
       <div class="info-divider"></div>
-      
       <div class="info-row">
         <span class="info-label">Actie vereist</span>
         <span class="info-value">Weigeren of Override</span>
       </div>
+      `}
     </div>
   `;
 
-  footer.innerHTML = `
-    <button class="btn btn-warning" id="force-allow-btn" style="width: 100%;">
-      ⚠️ Toch Toelaten (Override)
-    </button>
-    <button class="btn btn-secondary" id="cancel-denied-btn" style="width: 100%; margin-top: 8px;">
-      Annuleer
-    </button>
-  `;
+  if (result.reason === 'NOT_PAID' && result.open_amount) {
+    // NOT_PAID: toon Afrekenen + Override + Annuleer
+    const openAmount = parseFloat(result.open_amount);
+    footer.innerHTML = `
+      <button class="btn btn-primary" id="settle-now-btn" style="width: 100%; font-size: 16px;">
+        Afrekenen (&euro;${openAmount.toFixed(2)})
+      </button>
+      <button class="btn btn-warning" id="force-allow-btn" style="width: 100%; margin-top: 8px;">
+        Toch Toelaten (Override)
+      </button>
+      <button class="btn btn-secondary" id="cancel-denied-btn" style="width: 100%; margin-top: 8px;">
+        Annuleer
+      </button>
+    `;
 
-  document.getElementById('force-allow-btn').addEventListener('click', () => {
-    submitScan(reservationId, personsEntering, true);
-  });
+    document.getElementById('settle-now-btn').addEventListener('click', () => {
+      openSettleModal(reservationId);
+    });
 
-  document.getElementById('cancel-denied-btn').addEventListener('click', () => {
-    modal.classList.remove('active');
-  });
+    document.getElementById('force-allow-btn').addEventListener('click', () => {
+      submitScan(reservationId, personsEntering, true);
+    });
+
+    document.getElementById('cancel-denied-btn').addEventListener('click', () => {
+      modal.classList.remove('active');
+    });
+  } else {
+    // Andere redenen: standaard Override + Annuleer
+    footer.innerHTML = `
+      <button class="btn btn-warning" id="force-allow-btn">
+        Toch Toelaten (Override)
+      </button>
+      <button class="btn btn-secondary" id="cancel-denied-btn" style="margin-top: 8px;">
+        Annuleer
+      </button>
+    `;
+
+    document.getElementById('force-allow-btn').addEventListener('click', () => {
+      submitScan(reservationId, personsEntering, true);
+    });
+
+    document.getElementById('cancel-denied-btn').addEventListener('click', () => {
+      modal.classList.remove('active');
+    });
+  }
 
   modal.classList.add('active');
 }
@@ -1164,6 +1422,18 @@ async function loadReservations() {
         barClass = 'complete'; // Groen voor exact aantal
       }
 
+      // Betaalstatus badge
+      const openAmount = parseFloat(r.open_amount) || 0;
+      const isPaid = r.is_paid;
+      const paymentBadge = (!isPaid && openAmount > 0.01) ? `
+              <div style="margin-top: 8px; display: flex; align-items: center; justify-content: space-between;">
+                <span class="payment-badge-open">OPEN: &euro;${openAmount.toFixed(2)}</span>
+                <button class="btn btn-warning" onclick="event.stopPropagation(); openSettleModal(${r.reservation_id})" style="width: auto; padding: 6px 14px; font-size: 13px;">
+                  Afrekenen
+                </button>
+              </div>
+            ` : '';
+
       // Tour de Thorn indicator
       const tourLegBadge = r.tour_leg ? `
               <div style="margin-top: 8px;">
@@ -1207,10 +1477,11 @@ async function loadReservations() {
             ${formatDeliveryInfo(r.delivery_address)}
           </div>
           
+          ${paymentBadge}
           ${tourLegBadge}
-          
+
           <div class="progress-bar">
-            <div class="progress-fill ${barClass}" 
+            <div class="progress-fill ${barClass}"
                  style="width: ${progress}%"></div>
           </div>
         </div>
@@ -1412,26 +1683,26 @@ async function loadHistory() {
     container.innerHTML = history.map(h => `
       <div class="history-card">
         <div class="history-header">
-          <div style="display: flex; align-items: center; gap: 8px;">
+          <div class="history-detail-item">
             <span class="history-time">${formatDateTime(h.timestamp)}</span>
             <span class="status-badge status-info" style="font-size: 10px; padding: 2px 6px;">ID: ${h.reservation_id}</span>
           </div>
-          <div style="display: flex; gap: 8px; align-items: center;">
+          <div class="history-detail-item">
             ${h.forced ? '<span class="status-badge status-error">OVERRIDE</span>' : ''}
-            <button class="btn btn-secondary" data-action="delete-scan" data-id="${h.id}" style="padding: 2px 8px; font-size: 12px; height: auto; width: auto; color: #d32f2f; background: #ffebee; border-color: #ffcdd2;">Wis</button>
+            <button class="btn btn-secondary btn-sm" data-action="delete-scan" data-id="${h.id}" style="padding: 2px 8px; font-size: 12px; color: #d32f2f; background: #ffebee; border-color: #ffcdd2;">Wis</button>
           </div>
         </div>
-        <div class="history-name" style="font-weight: 800; color: var(--brand-primary);">${h.reservation_name || 'Reservering'}</div>
-        <div class="history-contact" style="font-size: 14px; margin-top: 4px; display: flex; align-items: center; gap: 4px;">
+        <div class="history-name">${h.reservation_name || 'Reservering'}</div>
+        <div class="history-contact">
           <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M19 21v-2a4 4 0 0 0-4-4H9a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>
           ${h.contact_name || '-'}
         </div>
-        <div class="history-details" style="margin-top: 8px; display: flex; justify-content: space-between; font-size: 13px; color: var(--text-secondary);">
-          <span style="display: flex; align-items: center; gap: 4px;">
+        <div class="history-details">
+          <span class="history-detail-item">
             <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg>
             <strong>${h.persons_entered}</strong> personen
           </span>
-          <span style="display: flex; align-items: center; gap: 4px;">
+          <span class="history-detail-item">
             <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="5" y="2" width="14" height="20" rx="2" ry="2"/><line x1="12" y1="18" x2="12.01" y2="18"/></svg>
             ${h.device_id.replace('device_', '')}
           </span>
@@ -1517,7 +1788,7 @@ async function loadUsers() {
     const users = await response.json();
 
     container.innerHTML = users.map(u => `
-      <div class="reservation-card" style="display: flex; justify-content: space-between; align-items: center; padding: 16px; border-radius: var(--radius-card); margin-bottom: 8px;">
+      <div class="user-card">
         <div>
           <div style="font-weight: 700; font-size: 16px;">${u.username}</div>
           ${u.email ? `<div style="font-size: 13px; color: var(--text-secondary); margin-top: 2px;">${u.email}</div>` : ''}
@@ -1527,11 +1798,11 @@ async function loadUsers() {
         </div>
         <div style="display: flex; gap: 8px;">
           ${u.email ? `
-            <button class="btn btn-secondary" data-action="resend-invite" data-id="${u.id}" data-email="${u.email}" style="padding: 8px 12px; width: auto;" title="Uitnodiging opnieuw versturen">
+            <button class="btn btn-secondary" data-action="resend-invite" data-id="${u.id}" data-email="${u.email}" class="btn-sm" title="Uitnodiging opnieuw versturen">
               <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M4 4h16c1.1 0 2 .9 2 2v12c0 1.1-.9 2-2 2H4c-1.1 0-2-.9-2-2V6c0-1.1.9-2 2-2z"/><polyline points="22,6 12,13 2,6"/></svg>
             </button>
           ` : ''}
-          <button class="btn btn-secondary" data-action="edit-user" data-id="${u.id}" data-username="${u.username}" data-role="${u.role}" data-email="${u.email || ''}" style="padding: 8px 12px; width: auto;">
+          <button class="btn btn-secondary" data-action="edit-user" data-id="${u.id}" data-username="${u.username}" data-role="${u.role}" data-email="${u.email || ''}" class="btn-sm">
             <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/></svg>
           </button>
           ${u.username !== localStorage.getItem('username') ? `
@@ -1733,10 +2004,10 @@ document.addEventListener('DOMContentLoaded', () => {
     body.innerHTML = '<div class="result-info" style="margin-bottom: 24px;"><p>Weet je zeker dat je wilt uitloggen?</p></div>';
 
     footer.innerHTML = `
-      <button class="btn btn-primary" id="do-logout-btn" style="width: 100%;">
+      <button class="btn btn-primary" id="do-logout-btn">
         Uitloggen
       </button>
-      <button class="btn btn-secondary" id="cancel-logout-btn" style="width: 100%; margin-top: 8px;">
+      <button class="btn btn-secondary" id="cancel-logout-btn" style="margin-top: 8px;">
         Annuleren
       </button>
     `;

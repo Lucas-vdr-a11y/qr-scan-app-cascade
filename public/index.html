@@ -15,7 +15,7 @@
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;500;600&family=Baloo+Thambi+2:wght@400;700&display=swap" rel="stylesheet">
 
-    <link rel="stylesheet" href="/styles.css?v=9">
+    <link rel="stylesheet" href="/styles.css?v=10">
     <link rel="manifest" href="/manifest.json">
 </head>
 
@@ -69,7 +69,7 @@
                 <span>Geschiedenis</span>
             </button>
 
-            <button class="nav-item" data-screen="users" id="nav-users" style="display: none;">
+            <button class="nav-item hidden" data-screen="users" id="nav-users">
                 <svg class="nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
                     <path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"></path>
                     <circle cx="9" cy="7" r="4"></circle>
@@ -136,13 +136,12 @@
 
         <!-- Reservations Screen -->
         <div id="reservations-screen" class="screen">
-            <div class="screen-header" style="display: flex; justify-content: space-between; align-items: flex-start;">
+            <div class="screen-header screen-header-with-action">
                 <div>
                     <h1>Reserveringen</h1>
                     <p class="subtitle" id="reservations-date">Vandaag</p>
                 </div>
-                <button id="refresh-reservations-btn" class="btn btn-secondary"
-                    style="width: auto; padding: 8px 12px; font-size: 14px; margin-top: 4px;">
+                <button id="refresh-reservations-btn" class="btn btn-secondary btn-sm">
                     <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"
                         stroke-linecap="round" stroke-linejoin="round" style="vertical-align: -2px;">
                         <path d="M21 2v6h-6" />
@@ -176,8 +175,7 @@
             </div>
 
             <!-- Stats Container -->
-            <div id="stats-container"
-                style="background: var(--bg-secondary); border: 1px solid var(--border-subtle); border-radius: 12px; padding: 12px 16px; margin: 0 16px 16px 16px; box-shadow: var(--shadow-card); display: flex; justify-content: space-between; align-items: center;">
+            <div id="stats-container" class="stats-card">
                 <div>
                     <div style="font-size: 13px; color: var(--text-secondary); font-weight: 500;">Totaal vandaag</div>
                     <div style="font-size: 20px; font-weight: 700; color: var(--text-primary);">
@@ -192,10 +190,8 @@
             </div>
 
             <!-- Search Input -->
-            <div style="margin: 0 16px 16px 16px;">
-                <input type="text" id="reservation-search" class="input-field"
-                    placeholder="Zoek op naam, nummer of contact..." style="width: 100%; box-shadow: var(--shadow-sm);">
-            </div>
+            <input type="text" id="reservation-search" class="input-field"
+                placeholder="Zoek op naam, nummer of contact...">
 
             <!-- Reservations List -->
             <div id="reservations-list" class="reservations-list">
@@ -255,13 +251,12 @@
 
         <!-- History Screen -->
         <div id="history-screen" class="screen">
-            <div class="screen-header" style="display: flex; justify-content: space-between; align-items: flex-start;">
+            <div class="screen-header screen-header-with-action">
                 <div>
                     <h1>Scan Geschiedenis</h1>
                     <p class="subtitle">Laatste 100 scans</p>
                 </div>
-                <button id="export-csv-btn" class="btn btn-secondary"
-                    style="width: auto; padding: 8px 12px; font-size: 14px; margin-top: 4px;">
+                <button id="export-csv-btn" class="btn btn-secondary btn-sm">
                     <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"
                         stroke-linecap="round" stroke-linejoin="round" style="vertical-align: -2px; margin-right: 4px;">
                         <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4" />
@@ -278,13 +273,12 @@
 
         <!-- Users Screen (Admin Only) -->
         <div id="users-screen" class="screen">
-            <div class="screen-header" style="display: flex; justify-content: space-between; align-items: flex-start;">
+            <div class="screen-header screen-header-with-action">
                 <div>
                     <h1>Gebruikers</h1>
                     <p class="subtitle">Beheer medewerkers</p>
                 </div>
-                <button id="open-add-user-btn" class="btn btn-primary"
-                    style="width: auto; padding: 8px 16px; font-size: 14px; margin-top: 4px;">
+                <button id="open-add-user-btn" class="btn btn-primary btn-sm">
                     <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"
                         stroke-linecap="round" stroke-linejoin="round" style="vertical-align: -2px; margin-right: 4px;">
                         <line x1="12" y1="5" x2="12" y2="19" />
@@ -310,24 +304,22 @@
 
             <div id="add-user-error" class="error" style="display: none;"></div>
 
-            <form id="add-user-form">
-                <div class="form-group" style="margin-bottom: 12px;">
-                    <label style="display: block; margin-bottom: 6px; font-weight: 500;">Gebruikersnaam</label>
+            <form id="add-user-form" class="modal-form">
+                <div class="form-group">
+                    <label>Gebruikersnaam</label>
                     <input type="text" name="username" required placeholder="bijv. jan_de_vries"
-                        style="width: 100%; padding: 10px; border: 1px solid var(--border-subtle); border-radius: var(--radius-input); font-size: 15px;"
-                        autocapitalize="none">
+                        class="input-field" autocapitalize="none">
                 </div>
 
-                <div class="form-group" style="margin-bottom: 12px;">
-                    <label style="display: block; margin-bottom: 6px; font-weight: 500;">E-mailadres</label>
+                <div class="form-group">
+                    <label>E-mailadres</label>
                     <input type="email" name="email" required placeholder="medewerker@voorbeeld.nl"
-                        style="width: 100%; padding: 10px; border: 1px solid var(--border-subtle); border-radius: var(--radius-input); font-size: 15px;">
+                        class="input-field">
                 </div>
 
-                <div class="form-group" style="margin-bottom: 16px;">
-                    <label style="display: block; margin-bottom: 6px; font-weight: 500;">Rol</label>
-                    <select name="role" required
-                        style="width: 100%; padding: 10px; border: 1px solid var(--border-subtle); border-radius: var(--radius-input); font-size: 15px; background: var(--bg-primary);">
+                <div class="form-group">
+                    <label>Rol</label>
+                    <select name="role" required class="input-field" style="background: var(--bg-primary);">
                         <option value="medewerker">Medewerker</option>
                         <option value="admin">Beheerder</option>
                     </select>
@@ -360,7 +352,7 @@
     <script src="https://unpkg.com/html5-qrcode@2.3.8/html5-qrcode.min.js"></script>
 
     <!-- App Script -->
-    <script src="/app.js?v=11"></script>
+    <script src="/app.js?v=12"></script>
 
     <!-- Cascade cross-navigation -->
     <script>
