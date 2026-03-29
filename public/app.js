@@ -507,20 +507,19 @@ async function processScan(reservationId) {
       return;
     }
     console.error('Scan processing error:', error);
-    showErrorModal(error.message || 'Fout bij ophalen reservering');
+    alert('Scan fout: ' + (error.message || 'Onbekende fout') + '\n\nStack: ' + (error.stack || '').substring(0, 300));
   }
 }
 
 async function openReservationDetail(reservationId) {
   try {
-    // Toon even een lader in de modal? Of gewoon fetch
     const response = await authFetch(`${API_BASE}/api/reservation/${reservationId}`);
     if (!response.ok) throw new Error('Reservering niet gevonden');
     const data = await response.json();
-    showReservationOverview(reservationId, data, true); // Hier tonen we wel het telefoonnummer
+    showReservationOverview(reservationId, data, true);
   } catch (error) {
     console.error('Error opening detail:', error);
-    showErrorModal(error.message || 'Fout bij ophalen details');
+    alert('Fout: ' + (error.message || 'Onbekende fout') + '\n\nStack: ' + (error.stack || '').substring(0, 300));
   }
 }
 
