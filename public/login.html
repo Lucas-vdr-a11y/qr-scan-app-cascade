@@ -118,7 +118,7 @@
             Wachtwoord vergeten?
         </a>
 
-        <a href="https://planner.varenbijcascade.com/login?redirect=qrscan" style="display: block; margin-top: 12px; color: var(--brand-primary, #2563eb); font-size: 14px; text-decoration: none; font-weight: 500;">
+        <a href="https://planner.varenbijcascade.com/login?redirect=qrscan" style="display: block; margin-top: 12px; color: var(--brand-primary); font-size: 14px; text-decoration: none; font-weight: 500;">
             Inloggen via Cascade
         </a>
 
@@ -162,8 +162,8 @@
                 });
                 const result = await res.json();
                 msgDiv.textContent = result.message || 'Check je inbox.';
-                msgDiv.style.background = 'var(--status-allow-bg, #d1fae5)';
-                msgDiv.style.color = 'var(--status-allow, #065f46)';
+                msgDiv.style.background = 'var(--status-ok-bg)';
+                msgDiv.style.color = 'var(--status-ok)';
                 msgDiv.style.display = 'block';
             } catch (err) {
                 msgDiv.textContent = 'Er ging iets mis. Probeer het opnieuw.';

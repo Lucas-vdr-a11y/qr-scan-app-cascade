@@ -284,7 +284,7 @@ function formatDeliveryInfo(addr) {
   }
 
   return `
-    <div class="info-row" style="background: var(--bg-body); padding: 8px; border-radius: 8px; margin-bottom: 8px; justify-content: flex-start; gap: 8px;">
+    <div class="info-row" style="background: var(--bg-tertiary); padding: 8px; border-radius: 8px; margin-bottom: 8px; justify-content: flex-start; gap: 8px;">
         <span class="info-label">Tafel</span>
         <span class="info-value" style="font-weight: 700; color: var(--brand-accent); font-size: 1.1em;">${escapeHtml(txt)}</span>
     </div>
@@ -306,7 +306,7 @@ function formatProductsInfo(products, isCollapsible = false) {
                 </div>
             </div>
             ${hasNotes ? `
-            <div class="hidden" style="margin-top: 6px; padding: 8px; background: var(--bg-body); border-radius: 4px; font-size: 13px; line-height: 1.4; color: var(--text-secondary); border-left: 3px solid var(--brand-accent);">
+            <div class="hidden" style="margin-top: 6px; padding: 8px; background: var(--bg-tertiary); border-radius: 4px; font-size: 13px; line-height: 1.4; color: var(--text-secondary); border-left: 3px solid var(--brand-accent);">
                 ${escapeHtml(p.notes.trim())}
             </div>
             ` : ''}
@@ -585,7 +585,7 @@ function showReservationOverview(reservationId, data, showPhone = true) {
   body.innerHTML = `
      <div class="result-info">
        ${showPhone ? `
-       <div class="info-row" style="background: var(--surface-light); padding: 8px 12px; border-radius: 8px; margin-bottom: 12px; border: 1px dashed var(--brand-accent);">
+       <div class="info-row" style="background: var(--bg-tertiary); padding: 8px 12px; border-radius: 8px; margin-bottom: 12px; border: 1px dashed var(--brand-accent);">
          <span class="info-label" style="opacity: 0.7;">Reserveringsnummer</span>
          <span class="info-value" style="font-family: monospace; font-size: 1.1em; color: var(--brand-accent); font-weight: bold;">#${reservationId}</span>
        </div>
@@ -680,12 +680,12 @@ function showReservationOverview(reservationId, data, showPhone = true) {
       ` : '')}
 
       ${data.internal_notes && data.internal_notes.trim() ? `
-        <details class="notes-collapsible" style="margin-top: 12px; background: var(--surface-light); border-radius: 8px; padding: 8px;">
+        <details class="notes-collapsible" style="margin-top: 12px; background: var(--bg-tertiary); border-radius: 8px; padding: 8px;">
           <summary style="cursor: pointer; font-weight: 600; color: var(--text-primary); display: flex; align-items: center; gap: 8px; user-select: none;">
             <span class="toggle-icon" style="font-size: 14px;">&#9654;</span>
             Interne notities
           </summary>
-          <div style="margin-top: 8px; padding: 8px; background: var(--bg-body); border-radius: 4px; font-size: 14px; line-height: 1.5; white-space: pre-wrap; color: var(--text-secondary);">
+          <div style="margin-top: 8px; padding: 8px; background: var(--bg-tertiary); border-radius: 4px; font-size: 14px; line-height: 1.5; white-space: pre-wrap; color: var(--text-secondary);">
             ${escapeHtml(data.internal_notes.trim())}
           </div>
         </details>
@@ -901,7 +901,7 @@ async function openSettleModal(reservationId, existingData = null) {
   const totalDiscount = finance.total_discount || 0;
 
   const productRows = products.map(p => `
-    <div style="display: flex; justify-content: space-between; font-size: 13px; padding: 5px 0; border-bottom: 1px solid var(--border-subtle, #eee);">
+    <div style="display: flex; justify-content: space-between; font-size: 13px; padding: 5px 0; border-bottom: 1px solid var(--border-subtle);">
       <span>${escapeHtml(p.name)}${p.quantity > 0 ? ' <span style="opacity:.6;">' + p.quantity + 'x</span>' : ''}</span>
       <span style="font-weight: 600; white-space: nowrap; margin-left: 12px;">&euro;${(p.total_price || 0).toFixed(2)}</span>
     </div>
@@ -932,7 +932,7 @@ async function openSettleModal(reservationId, existingData = null) {
         <span class="info-value">${escapeHtml(data.contact_name || '-')}</span>
       </div>
 
-      <div style="background: var(--surface-light, #f5f5f5); border-radius: 12px; padding: 12px; margin-top: 8px;">
+      <div style="background: var(--bg-tertiary); border-radius: 12px; padding: 12px; margin-top: 8px;">
 
         ${products.length > 0 ? `
         <div style="font-weight: 700; margin-bottom: 6px; font-size: 13px; color: var(--text-secondary); text-transform: uppercase; letter-spacing: 0.5px;">Producten</div>
@@ -947,14 +947,14 @@ async function openSettleModal(reservationId, existingData = null) {
         ` : ''}
 
         ${discountRows ? `
-        <div style="margin-top: 8px; padding-top: 8px; border-top: 1px dashed var(--border-subtle, #ddd);">
+        <div style="margin-top: 8px; padding-top: 8px; border-top: 1px dashed var(--border-subtle);">
           <div style="font-weight: 700; margin-bottom: 6px; font-size: 13px; color: var(--text-secondary); text-transform: uppercase; letter-spacing: 0.5px;">Kortingen</div>
           ${discountRows}
         </div>
         ` : ''}
 
         ${paymentRows ? `
-        <div style="margin-top: 8px; padding-top: 8px; border-top: 1px dashed var(--border-subtle, #ddd);">
+        <div style="margin-top: 8px; padding-top: 8px; border-top: 1px dashed var(--border-subtle);">
           <div style="font-weight: 700; margin-bottom: 6px; font-size: 13px; color: var(--text-secondary); text-transform: uppercase; letter-spacing: 0.5px;">Betalingen</div>
           ${paymentRows}
         </div>
@@ -1357,7 +1357,7 @@ function showErrorModal(message) {
   const footer = document.getElementById('result-footer');
 
   title.textContent = 'Fout';
-  body.innerHTML = `<p style="color: var(--error);">${escapeHtml(message)}</p>`;
+  body.innerHTML = `<p style="color: var(--status-deny);">${escapeHtml(message)}</p>`;
   footer.innerHTML = `
     <button class="btn btn-secondary" id="close-error-btn">Sluiten</button>
   `;
@@ -1431,7 +1431,7 @@ async function loadReservations() {
         percEl.style.background = 'var(--status-info-bg)';
         percEl.style.color = 'var(--status-info)';
       } else {
-        percEl.style.background = 'var(--surface-light)';
+        percEl.style.background = 'var(--bg-tertiary)';
         percEl.style.color = 'var(--text-secondary)';
       }
     } catch (err) {
@@ -1549,7 +1549,7 @@ async function loadReservations() {
     console.error('Load reservations error:', error);
     container.innerHTML = `
       <div class="empty-state">
-        <p style="color: var(--error);">Fout bij laden reserveringen</p>
+        <p style="color: var(--status-deny);">Fout bij laden reserveringen</p>
       </div>
     `;
   }
@@ -1746,7 +1746,7 @@ async function loadHistory() {
           </div>
           <div class="history-detail-item">
             ${h.forced ? '<span class="status-badge status-error">OVERRIDE</span>' : ''}
-            <button class="btn btn-secondary btn-sm" data-action="delete-scan" data-id="${h.id}" style="padding: 2px 8px; font-size: 12px; color: #d32f2f; background: #ffebee; border-color: #ffcdd2;">Wis</button>
+            <button class="btn btn-secondary btn-sm" data-action="delete-scan" data-id="${h.id}" style="padding: 2px 8px; font-size: 12px; color: var(--status-deny); background: var(--status-deny-bg); border-color: var(--status-deny-bg);">Wis</button>
           </div>
         </div>
         <div class="history-name">${h.reservation_name || 'Reservering'}</div>
@@ -1771,7 +1771,7 @@ async function loadHistory() {
     console.error('Load history error:', error);
     container.innerHTML = `
       <div class="empty-state">
-        <p style="color: var(--error);">Fout bij laden geschiedenis</p>
+        <p style="color: var(--status-deny);">Fout bij laden geschiedenis</p>
       </div>
     `;
   }

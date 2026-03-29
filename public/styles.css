@@ -1,50 +1,48 @@
 :root {
     /* ==================== COLOR TOKENS ==================== */
 
-    /* Brand Palette - Rederij Cascade */
-    --brand-primary: #212f4f;
+    /* Brand Palette - Rederij Cascade (huisstijlkaart) */
+    --brand-primary: #092D61;
     /* Marineblauw */
     --brand-accent: #B49253;
-    /* Helderblauw */
+    /* Goud */
 
-    /* Status Palette - Operationeel (Dominant) */
+    /* Status Palette - Operationeel */
     --status-ok: #059669;
-    /* Emerald-600 */
+    /* Groen - functioneel */
     --status-warn: #d97706;
-    /* Amber-600 */
+    /* Amber - functioneel */
     --status-deny: #dc2626;
-    /* Red-600 */
-    --status-info: #3d4a63;
-    /* Helderblauw */
+    /* Rood - functioneel */
+    --status-info: #1D5577;
+    /* Huisstijl teal */
 
-    /* Status Backgrounds (Simulated typically 10-15% opacity) */
+    /* Status Backgrounds */
     --status-ok-bg: #ecfdf5;
-    /* Emerald-50 */
     --status-warn-bg: #fffbeb;
-    /* Amber-50 */
     --status-deny-bg: #fef2f2;
-    /* Red-50 */
-    --status-info-bg: #d7d7d7;
-    /* Light Accent */
+    --status-info-bg: #DAE0E8;
+    /* Huisstijl events-bg */
 
-    /* Neutral Palette (Light Mode Default) */
-    --bg-primary: #f9f7f4;
+    /* Neutral Palette - Huisstijl */
+    --bg-primary: #F9F7F5;
+    /* Huisstijl achtergrond */
     --bg-secondary: #ffffff;
-    --bg-tertiary: #edecea;
-    /* Neutral-100 */
+    --bg-tertiary: #EDECEA;
+    /* Huisstijl achtergrond secundair */
 
-    --text-primary: #212f4f;
-    /* Neutral-900 / Marineblauw voor tekst */
-    --text-secondary: #3d4a63;
-    /* Blauw/Grijs */
-    --text-muted: #a3a3a3;
-    /* Neutral-400 */
+    --text-primary: #092D61;
+    /* Marineblauw */
+    --text-secondary: #49648A;
+    /* Huisstijl blauw gedempt */
+    --text-muted: #9A8F79;
+    /* Huisstijl warm grijs */
     --text-inverse: #ffffff;
 
-    --border-subtle: #d7d7d7;
-    /* Neutral-200 */
+    --border-subtle: #EDECEA;
+    /* Huisstijl cream-dark */
     --border-focus: #B49253;
-    /* Blue-300 */
+    /* Goud */
 
     /* Shadows */
     --shadow-card: 0 1px 2px 0 rgb(0 0 0 / 0.05);
@@ -236,7 +234,7 @@ input {
 }
 
 .nav-item.active .qr-nav-icon {
-    filter: brightness(0) saturate(100%) invert(42%) sepia(93%) saturate(401%) hue-rotate(142deg) brightness(97%) contrast(88%);
+    filter: brightness(0) saturate(100%) invert(12%) sepia(96%) saturate(2847%) hue-rotate(206deg) brightness(91%) contrast(101%);
 }
 
 .nav-item span {
@@ -273,7 +271,7 @@ input {
 }
 
 .btn-primary:hover {
-    background-color: #a3833e;
+    background-color: #8E7649;
     box-shadow: 0 4px 8px rgba(180, 146, 83, 0.35);
 }
 
@@ -314,7 +312,7 @@ input {
 .input-field:focus {
     border-color: var(--brand-accent);
     outline: none;
-    box-shadow: 0 0 0 3px rgba(15, 163, 161, 0.1);
+    box-shadow: 0 0 0 3px rgba(180, 146, 83, 0.15);
 }
 
 /* ==================== CARDS ==================== */
@@ -678,7 +676,7 @@ input {
 
 .status-info {
     background: var(--status-info-bg);
-    color: #1d4ed8;
+    color: #1D5577;
 }
 
 .status-error {
@@ -811,7 +809,7 @@ input {
 .floorplan-date-picker:focus {
     outline: none;
     border-color: var(--brand-accent);
-    box-shadow: 0 0 0 2px rgba(15, 163, 161, 0.15);
+    box-shadow: 0 0 0 2px rgba(180, 146, 83, 0.15);
 }
 
 
