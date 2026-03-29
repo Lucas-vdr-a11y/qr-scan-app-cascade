@@ -668,7 +668,7 @@ function showReservationOverview(reservationId, data, showPhone = true) {
           <div style="font-size: 13px; color: var(--text-secondary); margin-bottom: 12px;">
             Totaal: &euro;${data.finance.total_price.toFixed(2)} | Betaald: &euro;${data.finance.total_paid.toFixed(2)}
           </div>
-          <button class="btn btn-warning" id="settle-from-detail-btn" style="width: 100%;">
+          <button class="btn btn-primary" id="settle-from-detail-btn" style="width: 100%;">
             Afrekenen (&euro;${data.finance.open_amount.toFixed(2)})
           </button>
         </div>
@@ -1470,7 +1470,7 @@ async function loadReservations() {
       const paymentBadge = (!isPaid && openAmount > 0.01) ? `
               <div style="margin-top: 8px; display: flex; align-items: center; justify-content: space-between;">
                 <span class="payment-badge-open">OPEN: &euro;${openAmount.toFixed(2)}</span>
-                <button class="btn btn-warning settle-btn" data-rid="${r.reservation_id}" style="width: auto; padding: 6px 14px; font-size: 13px;">
+                <button class="btn btn-primary settle-btn" data-rid="${r.reservation_id}" style="width: auto; padding: 6px 14px; font-size: 13px;">
                   Afrekenen
                 </button>
               </div>
