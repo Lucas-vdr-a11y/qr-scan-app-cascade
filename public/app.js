@@ -80,6 +80,13 @@ async function authFetch(url, options = {}) {
     window.location.href = 'https://dashboard.varenbijcascade.com';
     throw new Error('Niet ingelogd');
   }
+  if (res.status === 429) {
+    throw new Error('Te veel verzoeken — wacht even en probeer opnieuw');
+  }
+  if (!res.ok) {
+    const body = await res.json().catch(() => ({}));
+    throw new Error(body.message || body.error || `Server error (${res.status})`);
+  }
   return res;
 }
 
@@ -1549,7 +1556,9 @@ async function loadReservations() {
     console.error('Load reservations error:', error);
     container.innerHTML = `
       <div class="empty-state">
-        <p style="color: var(--status-deny);">Fout bij laden reserveringen</p>
+        <p style="color: var(--status-deny);">Kan reserveringen niet ophalen</p>
+        <p style="color: var(--text-secondary); font-size: 13px; margin-top: 8px;">${escapeHtml(error.message)}</p>
+        <button onclick="loadReservations()" style="margin-top: 12px; padding: 8px 20px; background: var(--brand-accent); color: #000; border: none; border-radius: 8px; font-weight: 600; cursor: pointer;">Opnieuw proberen</button>
       </div>
     `;
   }
