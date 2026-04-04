@@ -833,7 +833,7 @@ function showOverrideScanInput(reservationId, totalPersons) {
                 id="persons-entering"
                 min="1"
                 max="${totalPersons}"
-                value="1"
+                value="${totalPersons}"
               >
               <button class="btn btn-secondary btn-counter" onclick="document.getElementById('persons-entering').stepUp()">+</button>
           </div>
