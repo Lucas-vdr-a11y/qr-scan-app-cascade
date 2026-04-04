@@ -9,6 +9,7 @@ const rateLimit = require('express-rate-limit');
 
 const { initDatabase, statements } = require('./database');
 const semApi = require('./sem-api');
+const reservationCache = require('./reservation-cache');
 const bcrypt = require('bcryptjs');
 const jwt = require('jsonwebtoken');
 const crypto = require('crypto');
@@ -145,8 +146,10 @@ app.set('trust proxy', 1);
 // Initialize database first
 let serverReady = false;
 
-initDatabase().then(() => {
+initDatabase().then(async () => {
     serverReady = true;
+    await reservationCache.refresh();
+    reservationCache.startAutoRefresh();
     console.log('✓ Server ready');
 }).catch(err => {
     console.error('Failed to initialize database:', err);
@@ -513,8 +516,12 @@ app.post('/api/scan', async (req, res) => {
     }
 
     try {
-        // Haal reservering op van SEM
-        const reservation = await semApi.getReservation(reservation_id);
+        // Haal reservering op (cache-first, fallback naar SEM)
+        let reservation = reservationCache.get(reservation_id);
+        if (!reservation) {
+            reservation = await semApi.getReservation(reservation_id);
+            if (reservation) reservationCache.set(reservation_id, reservation);
+        }
         const currentDate = getCurrentDate();
 
         // Valideer reservering (tenzij force_allow)
@@ -792,8 +799,10 @@ app.get('/api/reservations', async (req, res) => {
     const { date = getCurrentDate(), facility } = req.query;
 
     try {
-        // Haal reserveringen op van SEM
-        const reservations = await semApi.getReservations(date);
+        // Haal reserveringen op (cache voor vandaag, SEM voor andere datums)
+        const reservations = (date === getCurrentDate() && reservationCache.getAll())
+            ? reservationCache.getAll()
+            : await semApi.getReservations(date);
 
         // Filter op facility indien opgegeven
         let filteredReservations = reservations;
@@ -889,7 +898,9 @@ app.get('/api/stats', async (req, res) => {
         const date = req.query.date || getCurrentDate();
         const facility = req.query.facility;
 
-        const reservations = await semApi.getReservations(date);
+        const reservations = (date === getCurrentDate() && reservationCache.getAll())
+            ? reservationCache.getAll()
+            : await semApi.getReservations(date);
 
         // Filter alleen actieve of optie-reserveringen
         let filtered = reservations.filter(r => {
@@ -1053,8 +1064,12 @@ app.get('/api/reservation/:reservation_id', async (req, res) => {
     }
 
     try {
-        // Haal reservering op van SEM
-        const reservation = await semApi.getReservation(reservationId);
+        // Haal reservering op (cache-first, fallback naar SEM)
+        let reservation = reservationCache.get(reservationId);
+        if (!reservation) {
+            reservation = await semApi.getReservation(reservationId);
+            if (reservation) reservationCache.set(reservationId, reservation);
+        }
 
         if (!reservation) {
             return res.status(404).json({
@@ -1176,6 +1191,26 @@ app.get('/api/status/:reservation_id', (req, res) => {
             message: 'Kan status niet ophalen'
         });
     }
+});
+
+/**
+ * GET /api/cache/status
+ * Cache metadata voor monitoring
+ */
+app.get('/api/cache/status', (req, res) => {
+    res.json(reservationCache.getMetadata());
+});
+
+/**
+ * POST /api/cache/refresh
+ * Handmatig cache verversen (admin only)
+ */
+app.post('/api/cache/refresh', async (req, res) => {
+    if (req.user.role !== 'admin') {
+        return res.status(403).json({ status: 'error', message: 'Alleen beheerders' });
+    }
+    await reservationCache.refresh();
+    res.json({ status: 'ok', ...reservationCache.getMetadata() });
 });
 
 // ------------------------------------------------------------------
@@ -1383,9 +1418,11 @@ app.get('/api/departures', async (req, res) => {
         }
     }
 
-    // Fallback: directe SEM call (zonder blok-info)
+    // Fallback: cache of SEM call (zonder blok-info)
     try {
-        const reservations = await semApi.getReservations(date);
+        const reservations = (date === getCurrentDate() && reservationCache.getAll())
+            ? reservationCache.getAll()
+            : await semApi.getReservations(date);
 
         let departures = reservations.filter(r =>
             r.ReservationCodings?.some(c => c.ReservationCodingChoiceID === 1)
