@@ -75,7 +75,7 @@ async function authFetch(url, options = {}) {
 
   const res = await fetch(url, { ...options, headers });
 
-  if (res.status === 401 || res.status === 403) {
+  if (res.status === 401) {
     localStorage.removeItem('auth_token');
     window.location.href = 'https://dashboard.varenbijcascade.com';
     throw new Error('Niet ingelogd');
@@ -1121,7 +1121,7 @@ async function submitScan(reservationId, personsEntering, forceAllow = false, to
       saveScanOffline(body);
     } else {
       console.error('Submit scan error:', error);
-      showErrorModal('Fout bij verwerken scan');
+      showErrorModal(error.message || 'Fout bij verwerken scan');
     }
   }
 }

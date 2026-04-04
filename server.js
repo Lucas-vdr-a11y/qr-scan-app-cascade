@@ -837,10 +837,16 @@ app.get('/api/reservations', async (req, res) => {
         const result = filteredReservations.map(r => {
             const scanStatus = statusMap[r.ReservationID];
             const totalPersons = semApi.getNumberOfPersons(r);
+            const isTdT = semApi.isTourDeThorn(r);
             const finance = semApi.getFinanceInfo(r);
             // Check of lokaal afgerekend op kassa
             const localSettlements = statements.getPaymentSettlementsByReservation(r.ReservationID);
             const settledOnKassa = localSettlements.length > 0;
+
+            // Tour de Thorn: scan-status telt ritten (2), niet personen
+            const displayTotal = isTdT && scanStatus ? scanStatus.total_persons : totalPersons;
+            const displayScanned = scanStatus?.scanned_persons || 0;
+            const displayRemaining = isTdT && scanStatus ? scanStatus.remaining_persons : (displayTotal - displayScanned);
 
             return {
                 reservation_id: r.ReservationID,
@@ -848,16 +854,18 @@ app.get('/api/reservations', async (req, res) => {
                 date: r.ReservationDate?.split('T')[0],
                 start_time: r.StartTime,
                 end_time: r.EndTime,
-                total_persons: totalPersons,
-                scanned_persons: scanStatus?.scanned_persons || 0,
-                remaining_persons: scanStatus?.remaining_persons || totalPersons,
+                total_persons: displayTotal,
+                actual_persons: totalPersons,
+                is_tour_de_thorn: isTdT,
+                scanned_persons: displayScanned,
+                remaining_persons: displayRemaining,
                 facilities: r.ReservationFacilities?.map(f => ({
                     id: f.FacilityID,
                     name: f.FacilityName
                 })) || [],
                 scan_status: scanStatus ? (
-                    scanStatus.scanned_persons === 0 ? 'not_scanned' :
-                        scanStatus.remaining_persons <= 0 ? 'complete' : 'partial'
+                    displayScanned === 0 ? 'not_scanned' :
+                        displayRemaining <= 0 ? 'complete' : 'partial'
                 ) : 'not_scanned',
                 tour_leg: scanStatus?.tour_leg || null,
                 delivery_address: r.Delivery || r.DeliveryAddress,
@@ -936,9 +944,11 @@ app.get('/api/stats', async (req, res) => {
 
         filtered.forEach(r => {
             const totalPersons = semApi.getNumberOfPersons(r);
+            const isTdT = semApi.isTourDeThorn(r);
             const scanStatus = statusMap[r.ReservationID];
 
-            expected += totalPersons;
+            // Tour de Thorn: tel ritten (2), niet personen
+            expected += isTdT && scanStatus ? scanStatus.total_persons : totalPersons;
             if (scanStatus) scanned += scanStatus.scanned_persons;
         });
 
