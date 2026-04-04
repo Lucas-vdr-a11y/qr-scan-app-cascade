@@ -1458,11 +1458,12 @@ async function loadReservations() {
     container.innerHTML = reservations.map(r => {
       const scanned = parseInt(r.scanned_persons) || 0;
       const total = parseInt(r.total_persons) || 1;
-      const actualPersons = parseInt(r.actual_persons) || total;
       const isOverCapacity = scanned > total;
 
-      // Progress is max 100% for the bar width, but color changes if over
-      let progress = total > 0 ? (scanned / total) * 100 : 0;
+      // Tour de Thorn: voortgangsbalk op ritten, badge op personen
+      const progressTotal = r.is_tour_de_thorn && r.tdt_legs_total ? r.tdt_legs_total : total;
+      const progressScanned = r.is_tour_de_thorn && r.tdt_legs_scanned != null ? r.tdt_legs_scanned : scanned;
+      let progress = progressTotal > 0 ? (progressScanned / progressTotal) * 100 : 0;
       if (progress > 100) progress = 100;
 
       let barClass = '';
@@ -1511,13 +1512,13 @@ async function loadReservations() {
             <span class="status-badge status-${(r.scan_status === 'complete' || isOverCapacity) ? 'success' :
           r.scan_status === 'partial' ? 'warning' : 'info'
         }">
-              ${scanned} / ${total}${r.is_tour_de_thorn ? ' ritten' : ''}
+              ${scanned} / ${total}
             </span>
           </div>
           
           <div class="reservation-meta">
             <div class="meta-item">
-              ${actualPersons} personen
+              ${total} personen
               ${r.child_counts && (r.child_counts.kids > 0 || r.child_counts.babies > 0) ? `
                 <span style="opacity: 0.7; font-size: 11px; margin-left: 4px;">
                   (${r.child_counts.kids > 0 ? `${r.child_counts.kids} kind.` : ''}${r.child_counts.kids > 0 && r.child_counts.babies > 0 ? ' / ' : ''}${r.child_counts.babies > 0 ? `${r.child_counts.babies} baby` : ''})
