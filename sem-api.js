@@ -225,10 +225,21 @@ function getFacilityIds(reservation) {
 }
 
 function getNumberOfPersons(reservation) {
-    if (reservation.NumberOfPersons) return parseInt(reservation.NumberOfPersons);
+    if (reservation.NumberOfPersons > 0) return parseInt(reservation.NumberOfPersons);
     if (reservation.NumberOfPersonsText) {
+        // Handle ranges like "11-12" by taking the highest number
+        const rangeMatch = reservation.NumberOfPersonsText.match(/(\d+)\s*[-–]\s*(\d+)/);
+        if (rangeMatch) return Math.max(parseInt(rangeMatch[1]), parseInt(rangeMatch[2]));
         const parsed = parseInt(reservation.NumberOfPersonsText);
-        if (!isNaN(parsed)) return parsed;
+        if (!isNaN(parsed) && parsed > 0) return parsed;
+    }
+    // Fallback: sum from main products (highest NumberOf value)
+    if (reservation.ReservationProducts && Array.isArray(reservation.ReservationProducts)) {
+        const mainProducts = reservation.ReservationProducts.filter(p => p.OptionalType !== 'OptionalUnselected');
+        if (mainProducts.length > 0) {
+            const max = Math.max(...mainProducts.map(p => parseInt(p.NumberOf) || 0));
+            if (max > 0) return max;
+        }
     }
     return 1;
 }

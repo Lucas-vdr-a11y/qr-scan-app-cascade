@@ -506,7 +506,7 @@ async function processScan(reservationId) {
   } catch (error) {
     if (!navigator.onLine || error.message.includes('Failed to fetch') || error.message.includes('NetworkError')) {
       // Offline fallback! Ask how many people, then submitScan.
-      const ans = prompt(`Offline mode voor reservering #${reservationId}.\nHoeveel personen inchecken?`, "1");
+      const ans = prompt(`Offline mode voor reservering #${reservationId}.\nHoeveel personen inchecken? (vul het totale aantal in)`);
       if (ans && !isNaN(ans)) {
         // We pass a dummy forceAllow=true for offline bypass
         submitScan(reservationId, parseInt(ans), true);
