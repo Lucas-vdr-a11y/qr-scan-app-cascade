@@ -1458,6 +1458,7 @@ async function loadReservations() {
     container.innerHTML = reservations.map(r => {
       const scanned = parseInt(r.scanned_persons) || 0;
       const total = parseInt(r.total_persons) || 1;
+      const actualPersons = parseInt(r.actual_persons) || total;
       const isOverCapacity = scanned > total;
 
       // Progress is max 100% for the bar width, but color changes if over
@@ -1510,13 +1511,13 @@ async function loadReservations() {
             <span class="status-badge status-${(r.scan_status === 'complete' || isOverCapacity) ? 'success' :
           r.scan_status === 'partial' ? 'warning' : 'info'
         }">
-              ${scanned} / ${total}
+              ${scanned} / ${total}${r.is_tour_de_thorn ? ' ritten' : ''}
             </span>
           </div>
           
           <div class="reservation-meta">
             <div class="meta-item">
-              ${total} personen
+              ${actualPersons} personen
               ${r.child_counts && (r.child_counts.kids > 0 || r.child_counts.babies > 0) ? `
                 <span style="opacity: 0.7; font-size: 11px; margin-left: 4px;">
                   (${r.child_counts.kids > 0 ? `${r.child_counts.kids} kind.` : ''}${r.child_counts.kids > 0 && r.child_counts.babies > 0 ? ' / ' : ''}${r.child_counts.babies > 0 ? `${r.child_counts.babies} baby` : ''})
